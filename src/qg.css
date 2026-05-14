@@ -94,6 +94,10 @@ html, body {
 
 button, input, textarea { font: inherit; color: inherit; }
 
+strong, b, em, i { font-family: inherit; }
+em, i { font-style: italic; }
+strong, b { font-weight: 600; }
+
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
@@ -492,6 +496,51 @@ a:hover { text-decoration: underline; }
   text-align: center;
   min-height: 110px;
   color: var(--ink-3);
+}
+
+/* ── flip card (library) ────────────────────────────────────────── */
+.qg-flip-card {
+  perspective: 900px;
+  min-height: 170px;
+}
+.qg-flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  transform-style: preserve-3d;
+  transition: transform 0.42s cubic-bezier(.4,0,.2,1);
+}
+.qg-flip-card.is-flipped .qg-flip-card-inner {
+  transform: rotateY(180deg);
+}
+.qg-flip-card-front,
+.qg-flip-card-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: var(--radius-lg);
+}
+.qg-flip-card-back {
+  transform: rotateY(180deg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.qg-flip-back-title {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ink);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 /* ── score donut text ─────────────────────────────────────────── */
