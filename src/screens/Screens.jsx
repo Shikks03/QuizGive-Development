@@ -5,8 +5,47 @@ import { QGExport } from '../lib/export.js';
 import { parseQuizfetch, runAllParsers } from '../lib/parser.js';
 import { POLISH_PROMPT } from '../lib/polishPrompt.js';
 import { RichText } from '../components/RichText.jsx';
+import {
+  DndContext, DragOverlay, PointerSensor,
+  useSensor, useSensors, closestCenter,
+} from '@dnd-kit/core';
+import {
+  SortableContext, useSortable,
+  rectSortingStrategy, arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const { Plus, Upload, Star, StarFill, Search, Sparkles, FileText, Award, Refresh, Trash, Shuffle, Eye, Play, ChevRight, ArrowRight, Clock, MoreH, Download, Folder, FolderPlus, FolderMinus, Edit } = QGIcon;
+
+// ── DragCard (overlay ghost) ─────────────────────────────────────
+function DragCard({ id, state }) {
+  const quiz = state.quizzes?.[id];
+  const folder = state.folders?.[id];
+  const style = {
+    transform: 'rotate(1.5deg)',
+    boxShadow: '0 8px 24px rgba(108,99,255,0.25)',
+    border: '2px solid var(--accent)',
+    opacity: 0.95,
+    pointerEvents: 'none',
+  };
+  if (folder) {
+    return (
+      <div className="qg-lib-card" style={style}>
+        <div className="title"><Folder size={14} style={{ display: 'inline', marginRight: 6 }} />{folder.name}</div>
+        <div className="meta">{(folder.quizIds || []).length} quiz{(folder.quizIds || []).length !== 1 ? 'zes' : ''}</div>
+      </div>
+    );
+  }
+  if (quiz) {
+    return (
+      <div className="qg-lib-card" style={style}>
+        <div className="title">{quiz.title.replace(/^\[.+?\]\s*/, '')}</div>
+        <div className="meta">{quiz.questions.length} questions</div>
+      </div>
+    );
+  }
+  return null;
+}
 
 // ── Library (welcome) ────────────────────────────────────────────
 export function QGLibraryScreen({ state, actions, navigate }) {
@@ -14,6 +53,10 @@ export function QGLibraryScreen({ state, actions, navigate }) {
   const [activeCardId, setActiveCardId] = useState(null);
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [folderName, setFolderName] = useState('');
+  const [activeId, setActiveId] = useState(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
 
   const quizzes = Object.values(state.quizzes);
   const filtered = query
@@ -46,6 +89,32 @@ export function QGLibraryScreen({ state, actions, navigate }) {
     setFolderName('');
     setCreatingFolder(false);
   };
+
+  const sortableIds = [...folderIds, ...ungroupedIds];
+
+  function handleDragStart({ active }) {
+    setActiveId(active.id);
+  }
+
+  function handleDragEnd({ active, over }) {
+    setActiveId(null);
+    if (!over || active.id === over.id) return;
+
+    const isFolderItem = id => (state.folders || {})[id] !== undefined;
+
+    if (isFolderItem(over.id) && !isFolderItem(active.id)) {
+      actions.addQuizToFolder(over.id, active.id);
+      return;
+    }
+
+    const oldIndex = sortableIds.indexOf(active.id);
+    const newIndex = sortableIds.indexOf(over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const newOrder = arrayMove(sortableIds, oldIndex, newIndex);
+
+    actions.setFolderOrder(newOrder.filter(id => isFolderItem(id)));
+    actions.setCardOrder(newOrder.filter(id => !isFolderItem(id)));
+  }
 
   if (quizzes.length === 0) {
     return (
@@ -105,33 +174,66 @@ export function QGLibraryScreen({ state, actions, navigate }) {
           </div>
         </div>
 
-        <div className="qg-lib-grid">
-          {folders.map(f => (
-            <FolderCard key={f.id} folder={f} state={state} actions={actions} navigate={navigate} />
-          ))}
-          {ungrouped.map((q) => (
-            <LibraryCard
-              key={q.id}
-              quiz={q}
-              state={state}
-              actions={actions}
-              navigate={navigate}
-              activeCardId={activeCardId}
-              setActiveCardId={setActiveCardId}
-            />
-          ))}
-          <div className="qg-lib-card empty" onClick={(e) => { e.stopPropagation(); navigate({ name: 'upload' }); }}>
-            <div style={{ fontSize: 22, marginBottom: 4 }}><Plus size={22} /></div>
-            <div className="qg-muted">Upload or paste another</div>
-          </div>
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={sortableIds} strategy={rectSortingStrategy}>
+            <div className="qg-lib-grid">
+              {folders.map(f => (
+                <FolderCard
+                  key={f.id}
+                  folder={f}
+                  state={state}
+                  actions={actions}
+                  navigate={navigate}
+                  activeId={activeId}
+                />
+              ))}
+              {ungrouped.map((q) => (
+                <LibraryCard
+                  key={q.id}
+                  quiz={q}
+                  state={state}
+                  actions={actions}
+                  navigate={navigate}
+                  activeCardId={activeCardId}
+                  setActiveCardId={setActiveCardId}
+                />
+              ))}
+              <div className="qg-lib-card empty" onClick={(e) => { e.stopPropagation(); navigate({ name: 'upload' }); }}>
+                <div style={{ fontSize: 22, marginBottom: 4 }}><Plus size={22} /></div>
+                <div className="qg-muted">Upload or paste another</div>
+              </div>
+            </div>
+          </SortableContext>
+          <DragOverlay>
+            {activeId ? <DragCard id={activeId} state={state} /> : null}
+          </DragOverlay>
+        </DndContext>
       </div>
     </div>
   );
 }
 
-function FolderCard({ folder, state, actions, navigate }) {
+function FolderCard({ folder, state, actions, navigate, activeId }) {
   const quizzes = (folder.quizIds || []).map(id => state.quizzes[id]).filter(Boolean);
+
+  const {
+    attributes, listeners, setNodeRef,
+    transform, transition, isDragging, isOver,
+  } = useSortable({ id: folder.id });
+
+  const isQuizHovering = isOver && activeId && !(state.folders || {})[activeId];
+
+  const dragStyle = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.35 : 1,
+  };
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState(folder.name);
@@ -153,8 +255,27 @@ function FolderCard({ folder, state, actions, navigate }) {
   };
 
   return (
-    <div className="qg-folder-stack" onClick={() => { if (!menuOpen && !renaming) navigate({ name: 'folder', folderId: folder.id }); }}>
-      <div className="qg-lib-card qg-folder-main">
+    <div
+      ref={setNodeRef}
+      style={dragStyle}
+      {...attributes}
+      {...listeners}
+      className="qg-folder-stack"
+      onClick={() => { if (!menuOpen && !renaming) navigate({ name: 'folder', folderId: folder.id }); }}
+    >
+      <div
+        className="qg-lib-card qg-folder-main"
+        style={isQuizHovering ? {
+          background: 'var(--accent-tint, #ece9ff)',
+          borderColor: 'var(--accent)',
+          boxShadow: '0 0 0 3px rgba(108,99,255,0.18)',
+        } : undefined}
+      >
+        {isQuizHovering && (
+          <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, marginBottom: 4 }}>
+            Drop to add ↓
+          </div>
+        )}
         <div className="qg-row between" style={{ alignItems: 'flex-start' }}>
           <div className="qg-row" style={{ gap: 8, flex: 1, minWidth: 0 }}>
             <span style={{ color: 'var(--accent)', flexShrink: 0 }}><Folder size={16} /></span>
@@ -229,6 +350,18 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
     };
   }, [menuOpen]);
 
+  const {
+    attributes, listeners, setNodeRef,
+    transform, transition, isDragging,
+  } = useSortable({ id: quiz.id });
+
+  const dragStyle = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.35 : 1,
+    zIndex: isDragging ? 0 : undefined,
+  };
+
   let status = 'not started';
   let pct = 0;
   if (result) {
@@ -242,6 +375,10 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
 
   return (
     <div
+      ref={setNodeRef}
+      style={dragStyle}
+      {...attributes}
+      {...listeners}
       className={`qg-flip-card${isFlipped ? ' is-flipped' : ''}`}
       onClick={(e) => { e.stopPropagation(); setActiveCardId(quiz.id); }}
     >
