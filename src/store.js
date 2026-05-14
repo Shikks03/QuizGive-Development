@@ -13,6 +13,9 @@ const QG_DEFAULTS = {
   recentQuizId: null,
   ranOnboarding: false,
   folders: {},
+  cardOrder: [],
+  folderOrder: [],
+  folderCardOrder: {},
 };
 
 function loadState() {
@@ -28,6 +31,14 @@ function loadState() {
 
 function saveState(s) {
   try { localStorage.setItem(QG_KEY, JSON.stringify(s)); } catch {}
+}
+
+export function resolveOrder(order, availableIds) {
+  const idSet = new Set(availableIds);
+  const known = order.filter(id => idSet.has(id));
+  const knownSet = new Set(known);
+  const novel = availableIds.filter(id => !knownSet.has(id));
+  return [...known, ...novel];
 }
 
 export function useQGStore() {
@@ -123,6 +134,11 @@ export function useQGStore() {
       if (!folder) return s;
       return { ...s, folders: { ...s.folders, [folderId]: { ...folder, quizIds: folder.quizIds.filter(id => id !== quizId) } } };
     }),
+    setCardOrder: (ids) => update(s => ({ ...s, cardOrder: ids })),
+    setFolderOrder: (ids) => update(s => ({ ...s, folderOrder: ids })),
+    setFolderCardOrder: (folderId, ids) => update(s => ({
+      ...s, folderCardOrder: { ...s.folderCardOrder, [folderId]: ids },
+    })),
   }), [update]);
 
   return [state, actions];
