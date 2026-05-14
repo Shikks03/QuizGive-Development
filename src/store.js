@@ -12,6 +12,7 @@ const QG_DEFAULTS = {
   questionBookmarks: {},
   recentQuizId: null,
   ranOnboarding: false,
+  folders: {},
 };
 
 function loadState() {
@@ -100,6 +101,28 @@ export function useQGStore() {
 
     setRecent: (quizId) => update((s) => ({ ...s, recentQuizId: quizId })),
     markOnboarded: () => update((s) => ({ ...s, ranOnboarding: true })),
+
+    createFolder: (name) => update((s) => {
+      const id = 'f_' + Date.now().toString(36);
+      return { ...s, folders: { ...s.folders, [id]: { id, name, quizIds: [], createdAt: Date.now() } } };
+    }),
+    deleteFolder: (id) => update((s) => {
+      const { [id]: _gone, ...folders } = s.folders;
+      return { ...s, folders };
+    }),
+    renameFolder: (id, name) => update((s) => ({
+      ...s, folders: { ...s.folders, [id]: { ...s.folders[id], name } },
+    })),
+    addQuizToFolder: (folderId, quizId) => update((s) => {
+      const folder = s.folders[folderId];
+      if (!folder || folder.quizIds.includes(quizId)) return s;
+      return { ...s, folders: { ...s.folders, [folderId]: { ...folder, quizIds: [...folder.quizIds, quizId] } } };
+    }),
+    removeQuizFromFolder: (folderId, quizId) => update((s) => {
+      const folder = s.folders[folderId];
+      if (!folder) return s;
+      return { ...s, folders: { ...s.folders, [folderId]: { ...folder, quizIds: folder.quizIds.filter(id => id !== quizId) } } };
+    }),
   }), [update]);
 
   return [state, actions];

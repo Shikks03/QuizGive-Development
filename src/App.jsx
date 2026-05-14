@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQGStore } from './store.js';
 import { QGSidebar, QGTopbar } from './components/Shell.jsx';
-import { QGLibraryScreen, QGUploadScreen, QGPreviewScreen, QGReadyScreen } from './screens/Screens.jsx';
+import { QGLibraryScreen, QGUploadScreen, QGPreviewScreen, QGReadyScreen, QGFolderScreen } from './screens/Screens.jsx';
 import { QGQuizScreen, QGResultsScreen } from './screens/Quiz.jsx';
 
 export default function QGApp() {
@@ -56,6 +56,8 @@ export default function QGApp() {
     screen = <QGQuizScreen state={state} actions={actions} navigate={navigate} quizId={route.quizId} />;
   } else if (route.name === 'results') {
     screen = <QGResultsScreen state={state} actions={actions} navigate={navigate} quizId={route.quizId} />;
+  } else if (route.name === 'folder') {
+    screen = <QGFolderScreen state={state} actions={actions} navigate={navigate} folderId={route.folderId} />;
   } else {
     screen = <div className="qg-empty">Unknown route.</div>;
   }
@@ -72,6 +74,7 @@ export default function QGApp() {
     else if (route.name === 'upload') { title = 'New quiz'; subtitle = 'Upload your quizfetch file'; }
     else if (route.name === 'preview') { title = 'Preview & configure'; }
     else if (route.name === 'ready') { title = 'Quiz ready'; }
+    else if (route.name === 'folder') { title = state.folders?.[route.folderId]?.name || 'Folder'; }
 
     topbar = (
       <QGTopbar

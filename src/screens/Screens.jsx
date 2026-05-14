@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { QGIcon } from '../icons.jsx';
 import { QGHelpers } from '../store.js';
 import { QGExport } from '../lib/export.js';
@@ -6,12 +6,14 @@ import { parseQuizfetch, runAllParsers } from '../lib/parser.js';
 import { POLISH_PROMPT } from '../lib/polishPrompt.js';
 import { RichText } from '../components/RichText.jsx';
 
-const { Plus, Upload, Star, StarFill, Search, Sparkles, FileText, Award, Refresh, Trash, Shuffle, Eye, Play, ChevRight, ArrowRight, Clock, MoreH, Download } = QGIcon;
+const { Plus, Upload, Star, StarFill, Search, Sparkles, FileText, Award, Refresh, Trash, Shuffle, Eye, Play, ChevRight, ArrowRight, Clock, MoreH, Download, Folder, FolderPlus, FolderMinus, Edit } = QGIcon;
 
 // ── Library (welcome) ────────────────────────────────────────────
 export function QGLibraryScreen({ state, actions, navigate }) {
   const [query, setQuery] = useState('');
   const [activeCardId, setActiveCardId] = useState(null);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [folderName, setFolderName] = useState('');
 
   const quizzes = Object.values(state.quizzes);
   const filtered = query
@@ -24,6 +26,17 @@ export function QGLibraryScreen({ state, actions, navigate }) {
     if (aBm !== bBm) return bBm - aBm;
     return (b.createdAt || 0) - (a.createdAt || 0);
   });
+
+  const folders = Object.values(state.folders || {}).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const folderedIds = new Set(folders.flatMap(f => f.quizIds));
+  const ungrouped = sorted.filter(q => !folderedIds.has(q.id));
+
+  const handleCreateFolder = () => {
+    if (!folderName.trim()) return;
+    actions.createFolder(folderName.trim());
+    setFolderName('');
+    setCreatingFolder(false);
+  };
 
   if (quizzes.length === 0) {
     return (
@@ -58,6 +71,25 @@ export function QGLibraryScreen({ state, actions, navigate }) {
               <Search size={15} />
               <input className="qg-input" placeholder="Search quizzes" value={query} onChange={(e) => setQuery(e.target.value)} />
             </div>
+            {creatingFolder ? (
+              <div className="qg-row" style={{ gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                <input
+                  className="qg-input"
+                  placeholder="Folder name"
+                  value={folderName}
+                  autoFocus
+                  onChange={(e) => setFolderName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleCreateFolder(); if (e.key === 'Escape') { setCreatingFolder(false); setFolderName(''); } }}
+                  style={{ width: 140, padding: '5px 10px', height: 34 }}
+                />
+                <button className="qg-btn primary sm" onClick={handleCreateFolder} disabled={!folderName.trim()}>Create</button>
+                <button className="qg-btn ghost sm" onClick={() => { setCreatingFolder(false); setFolderName(''); }}>✕</button>
+              </div>
+            ) : (
+              <button className="qg-btn" onClick={(e) => { e.stopPropagation(); setCreatingFolder(true); }}>
+                <FolderPlus size={15} /> New folder
+              </button>
+            )}
             <button className="qg-btn primary" onClick={() => navigate({ name: 'upload' })}>
               <Plus size={15} /> New quiz
             </button>
@@ -65,7 +97,10 @@ export function QGLibraryScreen({ state, actions, navigate }) {
         </div>
 
         <div className="qg-lib-grid">
-          {sorted.map((q) => (
+          {folders.map(f => (
+            <FolderCard key={f.id} folder={f} state={state} actions={actions} navigate={navigate} />
+          ))}
+          {ungrouped.map((q) => (
             <LibraryCard
               key={q.id}
               quiz={q}
@@ -86,12 +121,104 @@ export function QGLibraryScreen({ state, actions, navigate }) {
   );
 }
 
-function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCardId }) {
+function FolderCard({ folder, state, actions, navigate }) {
+  const quizzes = (folder.quizIds || []).map(id => state.quizzes[id]).filter(Boolean);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState(folder.name);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
+  const handleRename = () => {
+    if (newName.trim()) actions.renameFolder(folder.id, newName.trim());
+    setRenaming(false);
+    setMenuOpen(false);
+  };
+
+  return (
+    <div className="qg-folder-stack" onClick={() => { if (!menuOpen && !renaming) navigate({ name: 'folder', folderId: folder.id }); }}>
+      <div className="qg-lib-card qg-folder-main">
+        <div className="qg-row between" style={{ alignItems: 'flex-start' }}>
+          <div className="qg-row" style={{ gap: 8, flex: 1, minWidth: 0 }}>
+            <span style={{ color: 'var(--accent)', flexShrink: 0 }}><Folder size={16} /></span>
+            {renaming ? (
+              <input className="qg-input"
+                value={newName} autoFocus
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') { setRenaming(false); setNewName(folder.name); } }}
+                onClick={(e) => e.stopPropagation()}
+                style={{ padding: '2px 6px', height: 26, fontSize: 14 }}
+              />
+            ) : (
+              <div className="title" style={{ flex: 1 }}>{folder.name}</div>
+            )}
+          </div>
+          <div style={{ position: 'relative' }}>
+            <button className="qg-iconbtn" onClick={(e) => { e.stopPropagation(); setMenuOpen(o => !o); }}>
+              <MoreH size={16} />
+            </button>
+            {menuOpen && (
+              <div ref={menuRef} className="qg-card"
+                style={{ position: 'absolute', right: 0, top: 28, minWidth: 160, padding: 4, zIndex: 31, boxShadow: 'var(--shadow-lg)' }}
+                onClick={(e) => e.stopPropagation()}>
+                <button className="qg-btn ghost" style={{ width: '100%', justifyContent: 'flex-start' }}
+                  onClick={() => { setRenaming(true); setMenuOpen(false); }}>
+                  <Edit size={14} /> Rename
+                </button>
+                <button className="qg-btn ghost" style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--bad)' }}
+                  onClick={() => { setMenuOpen(false); if (confirm(`Delete folder "${folder.name}"? Quizzes inside will not be deleted.`)) actions.deleteFolder(folder.id); }}>
+                  <Trash size={14} /> Delete folder
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="meta">{quizzes.length} quiz{quizzes.length !== 1 ? 'zes' : ''}</div>
+        <div className="qg-row" style={{ gap: 6, marginTop: 8 }}>
+          <span className="qg-pill accent"><Folder size={11} /> folder</span>
+        </div>
+      </div>
+      {quizzes.slice(0, 2).map((q, i) => (
+        <div key={q.id} className={`qg-folder-peek peek-${i + 1}`}>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+            {q.title.replace(/^\[.+?\]\s*/, '')}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCardId, folderId }) {
   const isFav = state.bookmarks.includes(quiz.id);
   const session = state.sessions[quiz.id];
   const result = state.results[quiz.id];
   const [menuOpen, setMenuOpen] = useState(false);
+  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
+  const menuRef = useRef(null);
   const isFlipped = activeCardId === quiz.id;
+  const folderList = Object.values(state.folders || {});
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('scroll', handler, true);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('scroll', handler, true);
+    };
+  }, [menuOpen]);
 
   let status = 'not started';
   let pct = 0;
@@ -125,10 +252,7 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
               {menuOpen && (
                 <>
                   <div
-                    style={{ position: 'fixed', inset: 0, zIndex: 30 }}
-                    onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
-                  />
-                  <div
+                    ref={menuRef}
                     className="qg-card"
                     style={{ position: 'absolute', right: 0, top: 28, minWidth: 180, padding: 4, zIndex: 31, boxShadow: 'var(--shadow-lg)' }}
                     onClick={(e) => e.stopPropagation()}
@@ -141,6 +265,44 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
                       {isFav ? <StarFill size={14} /> : <Star size={14} />}
                       {isFav ? 'Remove bookmark' : 'Bookmark'}
                     </button>
+                    <button
+                      className="qg-btn ghost"
+                      style={{ width: '100%', justifyContent: 'flex-start' }}
+                      onClick={(e) => { e.stopPropagation(); QGExport.downloadJSON(quiz); setMenuOpen(false); }}
+                    >
+                      <Download size={14} /> Download JSON
+                    </button>
+                    <button
+                      className="qg-btn ghost"
+                      style={{ width: '100%', justifyContent: 'flex-start' }}
+                      onClick={(e) => { e.stopPropagation(); QGExport.downloadHTML(quiz); setMenuOpen(false); }}
+                    >
+                      <Download size={14} /> Download HTML
+                    </button>
+                    {!folderId && folderList.length > 0 && (
+                      <>
+                        <button className="qg-btn ghost" style={{ width: '100%', justifyContent: 'flex-start' }}
+                          onClick={() => setFolderPickerOpen(o => !o)}>
+                          <Folder size={14} /> Add to folder {folderPickerOpen ? '▲' : '▼'}
+                        </button>
+                        {folderPickerOpen && (
+                          <div style={{ borderTop: '1px solid var(--border)', margin: '2px 0' }}>
+                            {folderList.map(f => (
+                              <button key={f.id} className="qg-btn ghost" style={{ width: '100%', justifyContent: 'flex-start', paddingLeft: 24, fontSize: 13 }}
+                                onClick={() => { actions.addQuizToFolder(f.id, quiz.id); setMenuOpen(false); setFolderPickerOpen(false); }}>
+                                {f.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {folderId && (
+                      <button className="qg-btn ghost" style={{ width: '100%', justifyContent: 'flex-start' }}
+                        onClick={() => { actions.removeQuizFromFolder(folderId, quiz.id); setMenuOpen(false); }}>
+                        <FolderMinus size={14} /> Remove from folder
+                      </button>
+                    )}
                     <button
                       className="qg-btn ghost"
                       style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--bad)' }}
@@ -633,6 +795,48 @@ export function QGReadyScreen({ state, actions, navigate, quizId }) {
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Folder screen ────────────────────────────────────────────────
+export function QGFolderScreen({ state, actions, navigate, folderId }) {
+  const folder = state.folders?.[folderId];
+  const [activeCardId, setActiveCardId] = useState(null);
+  if (!folder) return <div className="qg-scroll"><div className="qg-content">Folder not found.</div></div>;
+  const quizzes = (folder.quizIds || []).map(id => state.quizzes[id]).filter(Boolean);
+
+  return (
+    <div className="qg-scroll" onClick={() => setActiveCardId(null)}>
+      <div className="qg-content wide">
+        <div className="qg-row" style={{ gap: 6, marginBottom: 8 }}>
+          <button className="qg-btn ghost sm" onClick={() => navigate({ name: 'library' })}>Library</button>
+          <span className="qg-muted" style={{ fontSize: 13 }}>›</span>
+          <span style={{ fontSize: 13, color: 'var(--ink-2)' }}>{folder.name}</span>
+        </div>
+        <div className="qg-row between" style={{ marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <h1 className="qg-h1">{folder.name}</h1>
+            <div className="qg-muted" style={{ marginTop: 4 }}>{quizzes.length} quiz{quizzes.length !== 1 ? 'zes' : ''}</div>
+          </div>
+        </div>
+        {quizzes.length === 0 ? (
+          <div className="qg-empty">
+            <div className="icon-wrap"><Folder size={24} /></div>
+            <div className="qg-h2">Empty folder</div>
+            <p className="qg-muted-2" style={{ maxWidth: 340, margin: '8px auto 0' }}>
+              Use the ··· menu on any quiz card to add it to this folder.
+            </p>
+          </div>
+        ) : (
+          <div className="qg-lib-grid">
+            {quizzes.map((q) => (
+              <LibraryCard key={q.id} quiz={q} state={state} actions={actions} navigate={navigate}
+                activeCardId={activeCardId} setActiveCardId={setActiveCardId} folderId={folderId} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
