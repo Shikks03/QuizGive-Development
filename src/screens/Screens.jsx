@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { QGIcon } from '../icons.jsx';
-import { QGHelpers } from '../store.js';
+import { QGHelpers, resolveOrder } from '../store.js';
 import { QGExport } from '../lib/export.js';
 import { parseQuizfetch, runAllParsers } from '../lib/parser.js';
 import { POLISH_PROMPT } from '../lib/polishPrompt.js';
@@ -27,9 +27,18 @@ export function QGLibraryScreen({ state, actions, navigate }) {
     return (b.createdAt || 0) - (a.createdAt || 0);
   });
 
-  const folders = Object.values(state.folders || {}).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  const folderedIds = new Set(folders.flatMap(f => f.quizIds));
-  const ungrouped = sorted.filter(q => !folderedIds.has(q.id));
+  const folderedIds = new Set(
+    Object.values(state.folders || {}).flatMap(f => f.quizIds)
+  );
+  const allFolderIds = Object.keys(state.folders || {});
+  const folderIds = resolveOrder(state.folderOrder, allFolderIds);
+  const folders = folderIds.map(id => state.folders[id]).filter(Boolean);
+
+  const allUngroupedIds = Object.values(state.quizzes)
+    .filter(q => !folderedIds.has(q.id))
+    .map(q => q.id);
+  const ungroupedIds = resolveOrder(state.cardOrder, allUngroupedIds);
+  const ungrouped = ungroupedIds.map(id => state.quizzes[id]).filter(Boolean);
 
   const handleCreateFolder = () => {
     if (!folderName.trim()) return;
