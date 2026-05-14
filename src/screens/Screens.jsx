@@ -950,8 +950,25 @@ export function QGReadyScreen({ state, actions, navigate, quizId }) {
 export function QGFolderScreen({ state, actions, navigate, folderId }) {
   const folder = state.folders?.[folderId];
   const [activeCardId, setActiveCardId] = useState(null);
+  const [activeId, setActiveId] = useState(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const availableQuizIds = (folder?.quizIds || []).filter(id => state.quizzes[id]);
+  const orderedQuizIds = resolveOrder(state.folderCardOrder?.[folderId] || [], availableQuizIds);
+  const quizzes = orderedQuizIds.map(id => state.quizzes[id]).filter(Boolean);
+
+  function handleDragEnd({ active, over }) {
+    setActiveId(null);
+    if (!over || active.id === over.id) return;
+    const oldIndex = orderedQuizIds.indexOf(active.id);
+    const newIndex = orderedQuizIds.indexOf(over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    actions.setFolderCardOrder(folderId, arrayMove(orderedQuizIds, oldIndex, newIndex));
+  }
+
   if (!folder) return <div className="qg-scroll"><div className="qg-content">Folder not found.</div></div>;
-  const quizzes = (folder.quizIds || []).map(id => state.quizzes[id]).filter(Boolean);
 
   return (
     <div className="qg-scroll" onClick={() => setActiveCardId(null)}>
@@ -976,12 +993,32 @@ export function QGFolderScreen({ state, actions, navigate, folderId }) {
             </p>
           </div>
         ) : (
-          <div className="qg-lib-grid">
-            {quizzes.map((q) => (
-              <LibraryCard key={q.id} quiz={q} state={state} actions={actions} navigate={navigate}
-                activeCardId={activeCardId} setActiveCardId={setActiveCardId} folderId={folderId} />
-            ))}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={({ active }) => setActiveId(active.id)}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={orderedQuizIds} strategy={rectSortingStrategy}>
+              <div className="qg-lib-grid">
+                {quizzes.map((q) => (
+                  <LibraryCard
+                    key={q.id}
+                    quiz={q}
+                    state={state}
+                    actions={actions}
+                    navigate={navigate}
+                    activeCardId={activeCardId}
+                    setActiveCardId={setActiveCardId}
+                    folderId={folderId}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+            <DragOverlay>
+              {activeId ? <DragCard id={activeId} state={state} /> : null}
+            </DragOverlay>
+          </DndContext>
         )}
       </div>
     </div>
