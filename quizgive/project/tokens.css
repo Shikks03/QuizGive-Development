@@ -1,0 +1,167 @@
+/* QuizGive wireframes — Claude-warm palette, sketchy low-fi vibe */
+:root {
+  --bg: #f0eee6;
+  --paper: #faf9f5;
+  --paper-2: #f5f1e8;
+  --ink: #29261b;
+  --ink-2: #5c5648;
+  --ink-3: #8a8270;
+  --accent: #c96442;        /* Claude clay/orange */
+  --accent-soft: #f0d8cc;
+  --accent-tint: #f8e7dd;
+  --ok: #4f7a3a;
+  --ok-soft: #dfe9d3;
+  --warn: #b8862f;
+  --bad: #9d3a2c;
+  --bad-soft: #efd5cf;
+  --rule: #29261b;
+  --rule-soft: #cdc6b4;
+  --shadow: 3px 3px 0 var(--ink);
+  --shadow-sm: 2px 2px 0 var(--ink);
+  --shadow-lg: 5px 5px 0 var(--ink);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Patrick Hand', 'Comic Sans MS', system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+/* ── core sketchy primitives ───────────────────────────────────────── */
+.s-box {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+.s-box.flat { box-shadow: none; }
+.s-box.tilt-l { transform: rotate(-0.6deg); }
+.s-box.tilt-r { transform: rotate(0.5deg); }
+.s-box.dashed { border-style: dashed; }
+.s-box.dotted { border-style: dotted; }
+
+.s-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.s-btn.primary { background: var(--accent); color: var(--paper); }
+.s-btn.ghost { box-shadow: none; background: transparent; }
+.s-btn.lg { padding: 10px 22px; font-size: 18px; box-shadow: var(--shadow); }
+.s-btn.sm { padding: 3px 10px; font-size: 13px; box-shadow: 1px 1px 0 var(--ink); }
+
+.s-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  padding: 1px 9px;
+  font-size: 12px;
+  background: var(--paper);
+  color: var(--ink-2);
+}
+.s-pill.accent { background: var(--accent-tint); color: var(--accent); border-color: var(--accent); }
+.s-pill.ok { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); }
+.s-pill.bad { background: var(--bad-soft); color: var(--bad); border-color: var(--bad); }
+
+.s-input {
+  width: 100%;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.s-hand { font-family: 'Caveat', 'Patrick Hand', cursive; }
+.s-title { font-family: 'Caveat', cursive; font-weight: 700; }
+
+/* squiggle underline for emphasis */
+.s-squig {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 6'><path d='M0 3 Q 5 0 10 3 T 20 3 T 30 3 T 40 3' fill='none' stroke='%23c96442' stroke-width='1.5'/></svg>");
+  background-repeat: repeat-x;
+  background-position: 0 100%;
+  background-size: 16px 5px;
+  padding-bottom: 3px;
+}
+
+/* "scribble" hatching fill — for selected/highlighted bands */
+.s-hatch-ok {
+  background-color: var(--ok-soft);
+  background-image: repeating-linear-gradient(45deg, transparent 0 4px, rgba(79,122,58,0.18) 4px 5px);
+}
+.s-hatch-bad {
+  background-color: var(--bad-soft);
+  background-image: repeating-linear-gradient(45deg, transparent 0 4px, rgba(157,58,44,0.22) 4px 5px);
+}
+.s-hatch-accent {
+  background-color: var(--accent-tint);
+  background-image: repeating-linear-gradient(45deg, transparent 0 4px, rgba(201,100,66,0.18) 4px 5px);
+}
+
+/* checkbox / radio — hand-drawn */
+.s-radio, .s-check {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border: 2px solid var(--ink);
+  vertical-align: -4px;
+  margin-right: 8px;
+  flex: 0 0 18px;
+  background: var(--paper);
+}
+.s-radio { border-radius: 50%; }
+.s-check { border-radius: 4px; }
+.s-radio.on { background: radial-gradient(circle, var(--ink) 30%, var(--paper) 32%); }
+.s-radio.on-ok { background: radial-gradient(circle, var(--ok) 30%, var(--ok-soft) 32%); border-color: var(--ok);}
+.s-radio.on-bad { background: radial-gradient(circle, var(--bad) 30%, var(--bad-soft) 32%); border-color: var(--bad);}
+.s-check.on::after { content: "✓"; display: block; margin-top: -4px; text-align: center; color: var(--ink); font-size: 16px;}
+
+/* horizontal rule scribble */
+.s-rule {
+  height: 0;
+  border: 0;
+  border-top: 2px solid var(--ink);
+  margin: 10px 0;
+}
+.s-rule.dashed { border-top-style: dashed; }
+.s-rule.soft { border-top-color: var(--rule-soft); }
+
+/* progress doodle */
+.s-progress {
+  position: relative;
+  height: 10px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper);
+  overflow: hidden;
+}
+.s-progress > i {
+  position: absolute; inset: 0 auto 0 0;
+  background-color: var(--accent);
+  background-image: repeating-linear-gradient(45deg, transparent 0 3px, rgba(0,0,0,0.12) 3px 4px);
+  display: block;
+}
+
+/* arrow utility */
+.s-arrow::before {
+  content: "→";
+  margin-right: 4px;
+}

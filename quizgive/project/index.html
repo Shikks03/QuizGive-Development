@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QuizGive · wireframe explorations</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Patrick+Hand&family=Kalam:wght@400;700&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="tokens.css" />
+
+<style>
+  /* Canvas background tweak so the warm cream reads as paper */
+  html, body { background: #e9e4d5; }
+
+  /* notebook-ish intro card at the top of the canvas */
+  .intro {
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 18px 22px;
+    max-width: 760px;
+    margin-bottom: 8px;
+    font-family: 'Patrick Hand', cursive;
+  }
+  .intro h1 { font-family: 'Caveat', cursive; font-size: 38px; margin: 0 0 6px; line-height: 1; }
+  .intro p { margin: 4px 0; color: var(--ink-2); font-size: 15px; }
+  .intro ul { margin: 6px 0 0 18px; padding: 0; color: var(--ink-2); font-size: 14px; }
+
+  /* dark mode */
+  body.dark {
+    --bg: #1a1814;
+    --paper: #26231d;
+    --paper-2: #2d2922;
+    --ink: #f0eee6;
+    --ink-2: #c9c4b4;
+    --ink-3: #8a8270;
+    --rule: #f0eee6;
+    --rule-soft: #524c3f;
+    --accent: #e08363;
+    --accent-soft: #4a342a;
+    --accent-tint: #3a2620;
+    --ok: #8fbf73;
+    --ok-soft: #2e3a26;
+    --bad: #d97a6b;
+    --bad-soft: #3d2622;
+    --shadow: 3px 3px 0 var(--ink);
+    --shadow-sm: 2px 2px 0 var(--ink);
+    --shadow-lg: 5px 5px 0 var(--ink);
+    background: #15130f;
+  }
+  body.dark html, body.dark { background: #15130f; }
+
+  /* density tweak */
+  body.tight { font-size: 15px; }
+
+  /* sketchy level: clean = no rotation/shadow, light = subtle, full = strong */
+  body.sketch-clean .s-box { box-shadow: none !important; transform: none !important; }
+  body.sketch-clean .s-btn { box-shadow: none !important; }
+  body.sketch-clean .s-progress { box-shadow: none !important; }
+
+  body.sketch-light .s-box { box-shadow: 1.5px 1.5px 0 var(--ink); }
+  body.sketch-light .s-btn { box-shadow: 1px 1px 0 var(--ink); }
+</style>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="shared.jsx"></script>
+<script type="text/babel" src="approach-a.jsx"></script>
+<script type="text/babel" src="approach-b.jsx"></script>
+<script type="text/babel" src="approach-b-extras.jsx"></script>
+<script type="text/babel" src="approach-c.jsx"></script>
+<script type="text/babel" src="approach-d.jsx"></script>
+
+<script type="text/babel">
+const { DesignCanvas, DCSection, DCArtboard } = window;
+const { TweaksPanel, useTweaks, TweakSection, TweakColor, TweakRadio, TweakToggle, TweakSelect } = window;
+
+function App() {
+  const DEFAULTS = /*EDITMODE-BEGIN*/{
+    "accent": "#c96442",
+    "sketchLevel": "light",
+    "density": "comfortable",
+    "darkMode": false,
+    "showFlowArrows": true
+  }/*EDITMODE-END*/;
+
+  const [t, setTweak] = useTweaks(DEFAULTS);
+
+  React.useEffect(() => {
+    const r = document.documentElement.style;
+    r.setProperty('--accent', t.accent);
+    document.body.classList.toggle('dark', !!t.darkMode);
+    document.body.classList.toggle('tight', t.density === 'tight');
+    document.body.classList.remove('sketch-clean', 'sketch-light', 'sketch-full');
+    document.body.classList.add(`sketch-${t.sketchLevel}`);
+  }, [t]);
+
+  const { ApproachA, ApproachB, ApproachC, ApproachD } = window;
+
+  return (
+    <>
+      <div style={{ position: 'fixed', top: 18, left: 24, zIndex: 5, maxWidth: 540 }} className="intro">
+        <h1>QuizGive · wireframes</h1>
+        <p>Four directions for parsing a <i>quizfetch</i> answer key into a takeable quiz. Warm Claude-ish palette, low-fi sketch. Open the Tweaks toggle to recolor, swap densities, or flip to dark.</p>
+        <ul>
+          <li><b>A · Hero Drop</b> — one big landing, all-questions-on-one-page mode.</li>
+          <li><b>B · Library Sidebar</b> — chat-list feel, with parsed-preview + quiz-ready decision + phone variant.</li>
+          <li><b>C · Stepper</b> — guided 4-step flow with prominent post-quiz actions.</li>
+          <li><b>D · Pocket Stack</b> — mobile, card-by-card, with sign-in.</li>
+        </ul>
+        <p style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 8 }}>Drag artboards to reorder · click any card for fullscreen focus · use the menu to download a PNG of any screen.</p>
+      </div>
+
+      <DesignCanvas>
+        <DCSection id="a" title="A · Hero Drop" subtitle="landing-first · all questions one page · post-submit feedback">
+          <DCArtboard id="a-all" label="Full flow · 4 screens" width={3380} height={620}>
+            <ApproachA />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="b" title="B · Library Sidebar" subtitle="Claude-style left rail · now with parsed-preview + quiz-ready decision step">
+          <DCArtboard id="b-all" label="Desktop · 6 screens" width={5260} height={620}>
+            <ApproachB />
+          </DCArtboard>
+          <DCArtboard id="b-phone" label="Phone · 7 screens" width={2620} height={680}>
+            <ApproachB_Phone />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="c" title="C · Stepper Workflow" subtitle="linear · explicit post-quiz CTAs (download · bookmark · new)">
+          <DCArtboard id="c-all" label="Full flow · 5 screens" width={4220} height={620}>
+            <ApproachC />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="d" title="D · Pocket Stack" subtitle="mobile · sign-in optional · swipeable question cards">
+          <DCArtboard id="d-all" label="Full flow · 5 screens" width={2080} height={660}>
+            <ApproachD />
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="Color & mode">
+          <TweakColor
+            label="Accent"
+            value={t.accent}
+            onChange={(v) => setTweak('accent', v)}
+            options={['#c96442', '#2a6fdb', '#1f8a5b', '#7c4dbe', '#29261b']}
+          />
+          <TweakToggle label="Dark mode" value={t.darkMode} onChange={(v) => setTweak('darkMode', v)} />
+        </TweakSection>
+        <TweakSection label="Sketch level">
+          <TweakRadio
+            value={t.sketchLevel}
+            onChange={(v) => setTweak('sketchLevel', v)}
+            options={[
+              { value: 'clean', label: 'Clean' },
+              { value: 'light', label: 'Light' },
+              { value: 'full',  label: 'Sketchy' },
+            ]}
+          />
+        </TweakSection>
+        <TweakSection label="Density">
+          <TweakRadio
+            value={t.density}
+            onChange={(v) => setTweak('density', v)}
+            options={[
+              { value: 'comfortable', label: 'Cozy' },
+              { value: 'tight', label: 'Tight' },
+            ]}
+          />
+        </TweakSection>
+      </TweaksPanel>
+    </>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
