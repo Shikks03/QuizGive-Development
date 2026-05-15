@@ -141,7 +141,7 @@ export function QGLibraryScreen({ state, actions, navigate }) {
       <div className="qg-content wide">
         <div className="qg-row between" style={{ marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 className="qg-h1">Library</h1>
+            <h1 className="qg-h1"><span className="hl">Library</span></h1>
             <div className="qg-muted" style={{ marginTop: 4 }}>{quizzes.length} quiz{quizzes.length === 1 ? '' : 'zes'} saved on this device</div>
           </div>
           <div className="qg-row" style={{ gap: 8 }}>
@@ -192,10 +192,11 @@ export function QGLibraryScreen({ state, actions, navigate }) {
                   activeId={activeId}
                 />
               ))}
-              {ungrouped.map((q) => (
+              {ungrouped.map((q, idx) => (
                 <LibraryCard
                   key={q.id}
                   quiz={q}
+                  tiltClass={idx % 2 === 0 ? 'tilt-r' : 'tilt-l'}
                   state={state}
                   actions={actions}
                   navigate={navigate}
@@ -327,7 +328,7 @@ function FolderCard({ folder, state, actions, navigate, activeId }) {
   );
 }
 
-function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCardId, folderId }) {
+function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCardId, folderId, tiltClass }) {
   const isFav = state.bookmarks.includes(quiz.id);
   const session = state.sessions[quiz.id];
   const result = state.results[quiz.id];
@@ -379,7 +380,7 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
       style={dragStyle}
       {...attributes}
       {...listeners}
-      className={`qg-flip-card${isFlipped ? ' is-flipped' : ''}`}
+      className={`qg-flip-card${isFlipped ? ' is-flipped' : ''}${tiltClass ? ' ' + tiltClass : ''}`}
       onClick={(e) => { e.stopPropagation(); setActiveCardId(quiz.id); }}
     >
       <div className="qg-flip-card-inner">
@@ -481,6 +482,7 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
             {session && !session.submitted && <span className="qg-pill warn">in progress</span>}
             {!result && !session && <span className="qg-pill">new</span>}
           </div>
+          {result && <span className="qg-stamp ok">passed!</span>}
         </div>
 
         {/* ── Back face ── */}
@@ -883,7 +885,7 @@ export function QGReadyScreen({ state, actions, navigate, quizId }) {
       <div className="qg-content wide">
         <div className="qg-row between" style={{ marginBottom: 18, alignItems: 'flex-end', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 className="qg-h1">Your quiz is ready</h1>
+            <h1 className="qg-h1">Your quiz is <span className="hl">ready!</span></h1>
             <div className="qg-muted-2" style={{ marginTop: 6 }}>
               <b>{quiz.title.replace(/^\[.+?\]\s*/, '')}</b> · {quiz.questions.length} questions
             </div>

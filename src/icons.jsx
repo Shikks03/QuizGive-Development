@@ -43,4 +43,34 @@ export const QGIcon = {
   ArrowLeft:   ic(<><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></>),
   MoreH:       ic(<><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></>),
   Edit:        ic(<><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></>),
+  Folder:      ic(<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />),
+  FolderPlus:  ic(<><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><line x1="12" y1="11" x2="12" y2="17" /><line x1="9" y1="14" x2="15" y2="14" /></>),
+  FolderMinus: ic(<><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /><line x1="9" y1="14" x2="15" y2="14" /></>),
 };
+
+export const HandArrow = ({ size = 48, dir = 'right', ...props }) => {
+  const paths = {
+    right: 'M10 20 C14 18 22 14 28 12 M22 8 C24 10 28 12 28 12 C26 14 23 16 22 17',
+    'down-left': 'M28 8 C24 14 18 22 12 28 M8 22 C10 26 12 28 12 28 C14 25 16 22 18 22',
+  };
+  return (
+    <svg width={size} height={size} viewBox="0 0 36 36" fill="none"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d={paths[dir] || paths.right} />
+    </svg>
+  );
+};
+
+export const HandStar = ({ size = 24, ...props }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"
+    stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <polygon points="12 2.5 14.8 9.2 22 9.7 16.8 14.2 18.5 21.3 12 17.5 5.5 21.3 7.2 14.2 2 9.7 9.2 9.2" />
+  </svg>
+);
+
+export const HandSquiggle = ({ width = 200, height = 10, ...props }) => (
+  <svg width={width} height={height} viewBox="0 0 200 10" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round" {...props}>
+    <path d="M0 5 C20 2 30 8 50 5 C70 2 80 8 100 5 C120 2 130 8 150 5 C170 2 180 8 200 5" />
+  </svg>
+);

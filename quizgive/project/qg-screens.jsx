@@ -1,7 +1,7 @@
 /* global React, QGIcon, QGHelpers, parseQuizfetch */
 // Pre-quiz screens: Library, Upload, Preview & configure, Ready.
 
-const { Plus, Upload, Star, StarFill, Search, Sparkles, FileText, Award, Refresh, Trash, Shuffle, Eye, Play, ChevRight, ArrowRight, Clock, MoreH } = window.QGIcon;
+const { Plus, Upload, Star, StarFill, Search, Sparkles, FileText, Award, Refresh, Trash, Shuffle, Eye, Play, ChevRight, ArrowRight, Clock, MoreH, Download } = window.QGIcon;
 
 // ── Library (welcome) ────────────────────────────────────────────
 window.QGLibraryScreen = function QGLibraryScreen({ state, actions, navigate }) {
@@ -104,6 +104,14 @@ function LibraryCard({ quiz, state, actions, navigate }) {
                   onClick={() => { actions.toggleBookmark(quiz.id); setMenuOpen(false); }}>
                   {isFav ? <StarFill size={14} /> : <Star size={14} />}
                   {isFav ? 'Remove bookmark' : 'Bookmark'}
+                </button>
+                <button className="qg-btn ghost" style={{ width: '100%', justifyContent: 'flex-start' }}
+                  onClick={() => { window.QGExport?.downloadJSON(quiz); setMenuOpen(false); }}>
+                  <Download size={14} /> Download JSON
+                </button>
+                <button className="qg-btn ghost" style={{ width: '100%', justifyContent: 'flex-start' }}
+                  onClick={() => { window.QGExport?.downloadHTML(quiz); setMenuOpen(false); }}>
+                  <Download size={14} /> Download HTML
                 </button>
                 <button className="qg-btn ghost" style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--bad)' }}
                   onClick={() => {

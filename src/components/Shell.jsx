@@ -4,7 +4,7 @@ import { QGHelpers } from '../store.js';
 
 const { Plus, Star, StarFill, Search, Settings, Menu, X, Sun, Moon, Sparkles, Book, FileText, Award, Edit } = QGIcon;
 
-export function QGLogo({ size = 19 }) {
+export function QGLogo({ size = 30 }) {
   return (
     <span className="qg-logo" style={{ fontSize: size }}>
       <svg width={size + 5} height={size + 5} viewBox="0 0 32 32">
@@ -48,8 +48,7 @@ export function QGSidebar({ state, actions, route, navigate, onClose }) {
         <Plus size={16} /> New quiz
       </button>
 
-      <div className="qg-side-item" onClick={() => navigate({ name: 'library' })}
-        style={inLibrary ? { background: 'var(--surface)', color: 'var(--ink)', boxShadow: 'var(--shadow-sm)' } : null}>
+      <div className={`qg-side-item${inLibrary ? ' active' : ''}`} onClick={() => navigate({ name: 'library' })}>
         <span className="qg-row" style={{ gap: 8 }}>
           <Book size={16} />
           <span>Library</span>
@@ -61,7 +60,7 @@ export function QGSidebar({ state, actions, route, navigate, onClose }) {
         <div className="qg-side-section-label">Your quizzes</div>
       )}
 
-      <div style={{ overflowY: 'auto', flex: 1, margin: '0 -4px', padding: '0 4px' }}>
+      <div style={{ overflowY: 'auto', flex: 1, minHeight: 0, margin: '0 -4px', padding: '0 4px' }}>
         {quizzes.map((q) => {
           const isFav = state.bookmarks.includes(q.id);
           const session = state.sessions[q.id];

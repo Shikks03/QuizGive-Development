@@ -3,6 +3,7 @@ import { QGIcon } from '../icons.jsx';
 import { QGHelpers } from '../store.js';
 import { QGExport } from '../lib/export.js';
 import { QGTopbar } from '../components/Shell.jsx';
+import { RichText } from '../components/RichText.jsx';
 
 const { Star, StarFill, Check, X, ArrowRight, ArrowLeft, ChevLeft, ChevRight, Refresh, Award, Download, Sparkles, Plus, Eye, EyeOff, Clock } = QGIcon;
 
@@ -106,7 +107,7 @@ function OneAtATime({ state, actions, navigate, quiz, session }) {
             )}
           </div>
 
-          <h1 className="prompt">{q.prompt}</h1>
+          <h1 className="prompt"><RichText nodes={q.prompt} /></h1>
 
           <div className="qg-col" style={{ gap: 10 }}>
             {order.map((origChoiceIdx, displayIdx) => {
@@ -130,7 +131,7 @@ function OneAtATime({ state, actions, navigate, quiz, session }) {
                   </span>
                   <span className="label">
                     <span className="qg-muted" style={{ marginRight: 8, fontSize: 13 }}>{String.fromCharCode(65 + displayIdx)}.</span>
-                    {choice}
+                    <RichText nodes={choice} />
                   </span>
                   {locked && isCorrect && <span className="badge">Correct answer</span>}
                   {locked && isPicked && !isCorrect && <span className="badge">Your answer</span>}
@@ -144,7 +145,7 @@ function OneAtATime({ state, actions, navigate, quiz, session }) {
               padding: 12, background: 'var(--bad-tint)', border: '1px solid var(--bad)',
               color: 'var(--ink)', fontSize: 14, marginTop: 4,
             }}>
-              <b>Not quite.</b> The correct answer is <b>{q.choices[correctOrig]}</b>.
+              <b>Not quite.</b> The correct answer is <b><RichText nodes={q.choices[correctOrig]} /></b>.
             </div>
           )}
           {locked && answered === correctOrig && (
@@ -268,7 +269,7 @@ function AllOnOnePage({ state, actions, navigate, quiz, session }) {
             return (
               <div key={qOrig} className="qg-qcard">
                 <div className="qhead">
-                  <h3 className="qprompt"><span className="qnum">{userNum}.</span>{q.prompt}</h3>
+                  <h3 className="qprompt"><span className="qnum">{userNum}.</span><RichText nodes={q.prompt} /></h3>
                   <button className="qg-iconbtn" onClick={() => actions.toggleQuestionBookmark(quiz.id, qOrig)}>
                     {isBM ? <StarFill size={16} style={{ color: 'var(--accent)' }} /> : <Star size={16} />}
                   </button>
@@ -294,7 +295,7 @@ function AllOnOnePage({ state, actions, navigate, quiz, session }) {
                         </span>
                         <span className="label">
                           <span className="qg-muted" style={{ marginRight: 6, fontSize: 13 }}>{String.fromCharCode(65 + displayIdx)}.</span>
-                          {q.choices[origChoiceIdx]}
+                          <RichText nodes={q.choices[origChoiceIdx]} />
                         </span>
                       </button>
                     );
@@ -473,8 +474,8 @@ export function QGResultsScreen({ state, actions, navigate, quizId }) {
                     return (
                       <div key={qOrig} className="qg-card flat" style={{ padding: 14, border: '1px solid var(--border)' }}>
                         <div className="qg-row between" style={{ alignItems: 'flex-start', marginBottom: 8, gap: 10 }}>
-                          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 15.5, lineHeight: 1.35 }}>
-                            <span className="qg-muted">{userNum}.</span> {q.prompt}
+                          <div style={{ fontFamily: 'var(--hand-display)', fontSize: 15.5, lineHeight: 1.35 }}>
+                            <span className="qg-muted">{userNum}.</span> <RichText nodes={q.prompt} />
                           </div>
                           <div className="qg-row" style={{ gap: 6, flex: '0 0 auto' }}>
                             {isBM && <span className="qg-pill accent"><StarFill size={11} /></span>}
@@ -498,7 +499,7 @@ export function QGResultsScreen({ state, actions, navigate, quizId }) {
                                 </span>
                                 <span className="label">
                                   <span className="qg-muted" style={{ marginRight: 6 }}>{String.fromCharCode(65 + displayIdx)}.</span>
-                                  {q.choices[origChoiceIdx]}
+                                  <RichText nodes={q.choices[origChoiceIdx]} />
                                 </span>
                                 {isCorrect && <span className="badge">Correct</span>}
                                 {isPicked && !isCorrect && <span className="badge">Your answer</span>}
