@@ -20,7 +20,7 @@ function QGMain({ state, actions, auth }) {
   const [sample, setSample] = useState(null);
 
   useEffect(() => {
-    document.body.classList.toggle('dark', state.theme === 'dark');
+    document.body.className = state.theme;
   }, [state.theme]);
 
   useEffect(() => {
