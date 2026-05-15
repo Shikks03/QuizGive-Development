@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { QGIcon } from '../icons.jsx';
+import { QGIcon, HandArrow, HandStar } from '../icons.jsx';
 import { QGHelpers, resolveOrder } from '../store.js';
 import { QGExport } from '../lib/export.js';
 import { parseQuizfetch, runAllParsers } from '../lib/parser.js';
@@ -141,8 +141,21 @@ export function QGLibraryScreen({ state, actions, navigate }) {
       <div className="qg-content wide">
         <div className="qg-row between" style={{ marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 className="qg-h1"><span className="hl">Library</span></h1>
-            <div className="qg-muted" style={{ marginTop: 4 }}>{quizzes.length} quiz{quizzes.length === 1 ? '' : 'zes'} saved on this device</div>
+            <div className="qg-row" style={{ alignItems: 'flex-end', gap: 8 }}>
+              <h1 className="qg-h1" style={{ margin: 0 }}><span className="hl">Library</span></h1>
+              <HandArrow dir="down-left" size={50} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <span style={{
+                display: 'inline-block',
+                fontFamily: 'var(--hand-display)',
+                fontSize: 20,
+                color: 'var(--accent)',
+                transform: 'rotate(-4deg)',
+                lineHeight: 1,
+                paddingBottom: 6,
+              }}>
+                {quizzes.length} saved!
+              </span>
+            </div>
           </div>
           <div className="qg-row" style={{ gap: 8 }}>
             <div className="qg-search" style={{ width: 220 }}>
@@ -386,7 +399,20 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
       <div className="qg-flip-card-inner">
 
         {/* ── Front face ── */}
-        <div className="qg-lib-card qg-flip-card-front">
+        <div className="qg-lib-card qg-flip-card-front" style={{ position: 'relative' }}>
+          {isFav && (
+            <HandStar
+              size={28}
+              style={{
+                position: 'absolute',
+                top: -10,
+                left: -10,
+                transform: 'rotate(-12deg)',
+                color: 'var(--accent)',
+                pointerEvents: 'none',
+              }}
+            />
+          )}
           <div className="qg-row between" style={{ alignItems: 'flex-start' }}>
             <div className="title" style={{ flex: 1 }}>{quiz.title.replace(/^\[.+?\]\s*/, '')}</div>
             <div style={{ position: 'relative' }}>
