@@ -272,7 +272,7 @@ function FolderCard({ folder, state, actions, navigate, activeId }) {
   return (
     <div
       ref={setNodeRef}
-      style={dragStyle}
+      style={{ ...dragStyle, zIndex: menuOpen ? 10 : undefined }}
       {...attributes}
       {...listeners}
       className="qg-folder-stack"
@@ -349,6 +349,8 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
   const [menuOpen, setMenuOpen] = useState(false);
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [newTitle, setNewTitle] = useState(quiz.title);
   const menuRef = useRef(null);
   const isFlipped = activeCardId === quiz.id;
   const folderList = Object.values(state.folders || {});
@@ -393,11 +395,11 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
     <>
     <div
       ref={setNodeRef}
-      style={dragStyle}
+      style={{ ...dragStyle, zIndex: menuOpen ? 10 : undefined }}
       {...attributes}
       {...listeners}
       className={`qg-flip-card${isFlipped ? ' is-flipped' : ''}${tiltClass ? ' ' + tiltClass : ''}`}
-      onClick={(e) => { e.stopPropagation(); setActiveCardId(quiz.id); }}
+      onClick={(e) => { if (renaming) return; e.stopPropagation(); setActiveCardId(quiz.id); }}
     >
       <div className="qg-flip-card-inner">
 
@@ -417,7 +419,22 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
             />
           )}
           <div className="qg-row between" style={{ alignItems: 'flex-start' }}>
-            <div className="title" style={{ flex: 1 }}>{quiz.title.replace(/^\[.+?\]\s*/, '')}</div>
+            {renaming ? (
+              <input
+                className="qg-input"
+                value={newTitle}
+                autoFocus
+                onChange={(e) => setNewTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { if (newTitle.trim()) actions.renameQuiz(quiz.id, newTitle.trim()); setRenaming(false); }
+                  if (e.key === 'Escape') { setRenaming(false); setNewTitle(quiz.title); }
+                }}
+                onClick={(e) => e.stopPropagation()}
+                style={{ padding: '2px 6px', height: 26, fontSize: 14, flex: 1 }}
+              />
+            ) : (
+              <div className="title" style={{ flex: 1 }}>{quiz.title.replace(/^\[.+?\]\s*/, '')}</div>
+            )}
             <div style={{ position: 'relative' }}>
               <button
                 className="qg-iconbtn"
@@ -486,6 +503,13 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
                         <FolderMinus size={14} /> Remove from folder
                       </button>
                     )}
+                    <button
+                      className="qg-btn ghost"
+                      style={{ width: '100%', justifyContent: 'flex-start' }}
+                      onClick={(e) => { e.stopPropagation(); setNewTitle(quiz.title); setRenaming(true); setMenuOpen(false); }}
+                    >
+                      <Edit size={14} /> Rename
+                    </button>
                     <button
                       className="qg-btn ghost"
                       style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--bad)' }}
@@ -575,8 +599,7 @@ export function QGUploadScreen({ state, actions, navigate, sample }) {
 
   const saveAndNavigate = (quiz, filename) => {
     quiz.sourceFilename = filename || '';
-    actions.saveQuiz(quiz);
-    navigate({ name: 'preview', quizId: quiz.id });
+    navigate({ name: 'preview', pendingQuiz: quiz });
   };
 
   const handleFile = async (file) => {
@@ -628,8 +651,7 @@ export function QGUploadScreen({ state, actions, navigate, sample }) {
     try {
       const quiz = parseQuizfetch(sample.html);
       quiz.sourceFilename = sample.name;
-      actions.saveQuiz(quiz);
-      navigate({ name: 'preview', quizId: quiz.id });
+      navigate({ name: 'preview', pendingQuiz: quiz });
     } catch (err) {
       setError('Could not load sample.');
       setParsing(false);
@@ -771,23 +793,36 @@ export function QGUploadScreen({ state, actions, navigate, sample }) {
 }
 
 // ── Preview & configure ──────────────────────────────────────────
-export function QGPreviewScreen({ state, actions, navigate, quizId }) {
-  const quiz = state.quizzes[quizId];
+export function QGPreviewScreen({ state, actions, navigate, quizId, pendingQuiz }) {
+  const quiz = pendingQuiz || state.quizzes[quizId];
   const [cfg, setCfg] = useState({
     randomizeQuestions: true,
     randomizeChoices: true,
     layout: 'one',
     feedback: 'instant',
   });
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(quiz?.title ?? '');
 
   if (!quiz) {
     return <div className="qg-scroll"><div className="qg-content">Quiz not found.</div></div>;
   }
 
+  const commitTitle = () => {
+    const t = editedTitle.trim() || quiz.title;
+    setEditedTitle(t);
+    setEditingTitle(false);
+    if (!pendingQuiz && t !== quiz.title) actions.renameQuiz(quiz.id, t);
+  };
+
   const generate = () => {
-    const session = QGHelpers.makeSession(quiz, cfg);
-    actions.saveSession(quiz.id, session);
-    navigate({ name: 'ready', quizId: quiz.id });
+    const title = editedTitle.trim() || quiz.title;
+    const finalQuiz = { ...quiz, title };
+    if (pendingQuiz) actions.saveQuiz(finalQuiz);
+    else if (title !== quiz.title) actions.renameQuiz(quiz.id, title);
+    const session = QGHelpers.makeSession(finalQuiz, cfg);
+    actions.saveSession(finalQuiz.id, session);
+    navigate({ name: 'ready', quizId: finalQuiz.id });
   };
 
   const lowConfidence = quiz.confidence != null && quiz.confidence < 0.7;
@@ -797,7 +832,24 @@ export function QGPreviewScreen({ state, actions, navigate, quizId }) {
       <div className="qg-content wide">
         <div className="qg-row between" style={{ marginBottom: 22, flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 className="qg-h1">{quiz.title.replace(/^\[.+?\]\s*/, '')}</h1>
+            {editingTitle ? (
+              <input
+                className="qg-input"
+                value={editedTitle}
+                autoFocus
+                onChange={(e) => setEditedTitle(e.target.value)}
+                onBlur={commitTitle}
+                onKeyDown={(e) => { if (e.key === 'Enter') commitTitle(); if (e.key === 'Escape') { setEditedTitle(quiz.title); setEditingTitle(false); } }}
+                style={{ fontSize: 28, fontWeight: 700, fontFamily: 'var(--hand-display)', width: '100%', marginBottom: 4 }}
+              />
+            ) : (
+              <div className="qg-row" style={{ gap: 8, alignItems: 'center' }}>
+                <h1 className="qg-h1">{editedTitle.replace(/^\[.+?\]\s*/, '')}</h1>
+                <button className="qg-iconbtn" title="Rename" onClick={() => setEditingTitle(true)}>
+                  <Edit size={14} />
+                </button>
+              </div>
+            )}
             <div className="qg-muted" style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               {quiz.course && <>{quiz.course} · </>}
               <span className="qg-pill ok"><Sparkles size={11} /> {quiz.questions.length} questions parsed</span>

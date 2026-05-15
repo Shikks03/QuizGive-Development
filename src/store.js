@@ -62,6 +62,9 @@ export function useQGStore() {
       quizzes: { ...s.quizzes, [quiz.id]: quiz },
       recentQuizId: quiz.id,
     })),
+    renameQuiz: (id, title) => update((s) => ({
+      ...s, quizzes: { ...s.quizzes, [id]: { ...s.quizzes[id], title } },
+    })),
     deleteQuiz: (id) => update((s) => {
       const { [id]: _gone, ...quizzes } = s.quizzes;
       const { [id]: _g2, ...sessions } = s.sessions;

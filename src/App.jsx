@@ -49,7 +49,7 @@ export default function QGApp() {
   } else if (route.name === 'upload') {
     screen = <QGUploadScreen state={state} actions={actions} navigate={navigate} sample={sample} />;
   } else if (route.name === 'preview') {
-    screen = <QGPreviewScreen state={state} actions={actions} navigate={navigate} quizId={route.quizId} />;
+    screen = <QGPreviewScreen state={state} actions={actions} navigate={navigate} quizId={route.quizId} pendingQuiz={route.pendingQuiz} />;
   } else if (route.name === 'ready') {
     screen = <QGReadyScreen state={state} actions={actions} navigate={navigate} quizId={route.quizId} />;
   } else if (route.name === 'quiz') {
