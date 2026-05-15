@@ -71,6 +71,8 @@ h1 { font-family: 'Caveat', cursive; font-size: 44px; line-height: 1.1; margin-b
 .nav-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 #29261b; }
 .nav-btn:disabled { opacity: 0.4; cursor: default; transform: none; box-shadow: 2px 2px 0 0 #29261b; }
 .nav-indicator { font-size: 15px; color: #8a8270; }
+#reset-btn { font-family: 'Patrick Hand', cursive; background: #fff; color: #29261b; border: 2px solid #29261b; border-radius: 10px; box-shadow: 2px 2px 0 0 #29261b; padding: 8px 20px; font-size: 15px; cursor: pointer; margin-bottom: 18px; }
+#reset-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 #29261b; }
 @media (max-width: 600px) { body { padding: 20px 14px; } h1 { font-size: 34px; } .q-prompt { font-size: 17px; } }
 </style>`,
 
@@ -114,6 +116,8 @@ h1 { font-family: 'Source Serif 4', Georgia, serif; font-size: 28px; font-weight
 .nav-btn:hover:not(:disabled) { background: #f5f1e8; }
 .nav-btn:disabled { opacity: 0.4; cursor: default; }
 .nav-indicator { font-size: 13px; color: #7b7660; }
+#reset-btn { background: #fff; color: #29261b; border: 1px solid #c4bfa8; border-radius: 8px; padding: 8px 20px; font-size: 14px; cursor: pointer; margin-bottom: 16px; font-family: inherit; transition: background 0.1s; }
+#reset-btn:hover { background: #f5f1e8; }
 @media (max-width: 600px) { body { padding: 20px 14px; } h1 { font-size: 22px; } .q-prompt { font-size: 16px; } }
 </style>`,
 
@@ -157,6 +161,8 @@ h1 { font-family: 'Caveat', cursive; font-size: 44px; line-height: 1.1; margin-b
 .nav-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 #f1eee4; }
 .nav-btn:disabled { opacity: 0.4; cursor: default; transform: none; box-shadow: 2px 2px 0 0 #f1eee4; }
 .nav-indicator { font-size: 15px; color: #8a8270; }
+#reset-btn { font-family: 'Patrick Hand', cursive; background: #1a1814; color: #f1eee4; border: 2px solid #f1eee4; border-radius: 10px; box-shadow: 2px 2px 0 0 #f1eee4; padding: 8px 20px; font-size: 15px; cursor: pointer; margin-bottom: 18px; }
+#reset-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 #f1eee4; }
 @media (max-width: 600px) { body { padding: 20px 14px; } h1 { font-size: 34px; } .q-prompt { font-size: 17px; } }
 </style>`,
 
@@ -196,7 +202,8 @@ h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
 .nav-btn:hover:not(:disabled) { background: #f0f0f0; }
 .nav-btn:disabled { opacity: 0.35; cursor: default; }
 .nav-indicator { font-size: 13px; color: #555; }
-@media print { .submit-bar, #submit-btn, .nav-bar, .tally-pill { display: none !important; } body { padding: 0; } }
+#reset-btn { background: #fff; color: #000; border: 1px solid #000; border-radius: 2px; padding: 6px 16px; font-size: 13px; cursor: pointer; margin-bottom: 14px; font-family: inherit; }
+@media print { .submit-bar, #submit-btn, .nav-bar, .tally-pill, #reset-btn { display: none !important; } body { padding: 0; } }
 </style>`,
 };
 
@@ -319,6 +326,7 @@ export const QGExport = {
   var total = ${n};
   var answered = {};
   var right = 0;
+  var showPage = null;
 
   function gradeQuestion(card) {
     var q = parseInt(card.dataset.q);
@@ -392,6 +400,22 @@ export const QGExport = {
     });
   }
 
+  document.getElementById('reset-btn').addEventListener('click', function() {
+    answered = {};
+    right = 0;
+    document.querySelectorAll('.choice').forEach(function(c) {
+      c.classList.remove('disabled', 'selected', 'correct', 'wrong');
+    });
+    document.querySelectorAll('.q-feedback').forEach(function(fb) { fb.hidden = true; });
+    document.querySelectorAll('.q-explain').forEach(function(ex) { ex.hidden = true; });
+    document.getElementById('score-banner').hidden = true;
+    var submitBtn = document.getElementById('submit-btn');
+    if (submitBtn) { submitBtn.hidden = false; submitBtn.disabled = true; }
+    var pill = document.getElementById('tally-pill');
+    if (pill) pill.style.display = 'none';
+    if (showPage) showPage(0);
+  });
+
   if (LAYOUT === 'one') {
     var pages = document.querySelectorAll('.page');
     var prevBtn = document.getElementById('prev-btn');
@@ -400,7 +424,7 @@ export const QGExport = {
     var submitBar = document.querySelector('.submit-bar');
     var cur = 0;
 
-    function showPage(idx) {
+    showPage = function(idx) {
       pages.forEach(function(pg, i) { pg.style.display = i === idx ? 'block' : 'none'; });
       prevBtn.disabled = idx === 0;
       nextBtn.style.display = idx < pages.length - 1 ? 'inline-block' : 'none';
@@ -429,6 +453,7 @@ ${themeHead}
   <h1>${escapeHtml(p.title || quiz.title)}</h1>
   <div class="meta">${escapeHtml(metaLine)}</div>
   <div id="score-banner" hidden>
+    <button id="reset-btn">Reset quiz</button>
     <div class="score-big"><span class="score-num"></span></div>
     <div class="score-sub"><span class="score-pct"></span> correct</div>
   </div>${navBar}
