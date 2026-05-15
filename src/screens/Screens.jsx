@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { QGIcon, HandArrow, HandStar } from '../icons.jsx';
 import { QGHelpers, resolveOrder } from '../store.js';
 import { QGExport } from '../lib/export.js';
+import { DownloadQuizModal } from '../components/DownloadQuizModal.jsx';
 import { parseQuizfetch, runAllParsers } from '../lib/parser.js';
 import { POLISH_PROMPT } from '../lib/polishPrompt.js';
 import { RichText } from '../components/RichText.jsx';
@@ -347,6 +348,7 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
   const result = state.results[quiz.id];
   const [menuOpen, setMenuOpen] = useState(false);
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const menuRef = useRef(null);
   const isFlipped = activeCardId === quiz.id;
   const folderList = Object.values(state.folders || {});
@@ -388,6 +390,7 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
   }
 
   return (
+    <>
     <div
       ref={setNodeRef}
       style={dragStyle}
@@ -530,7 +533,7 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
             <button
               className="qg-btn"
               style={{ width: '100%', justifyContent: 'center' }}
-              onClick={(e) => { e.stopPropagation(); QGExport.downloadInteractiveQuiz(quiz); }}
+              onClick={(e) => { e.stopPropagation(); setDownloadOpen(true); }}
             >
               <Download size={14} /> Download
             </button>
@@ -546,6 +549,10 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
 
       </div>
     </div>
+    {downloadOpen && (
+      <DownloadQuizModal quiz={quiz} state={state} onClose={() => setDownloadOpen(false)} />
+    )}
+    </>
   );
 }
 
