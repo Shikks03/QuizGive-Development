@@ -74,3 +74,18 @@ export const HandSquiggle = ({ width = 200, height = 10, ...props }) => (
     <path d="M0 5 C20 2 30 8 50 5 C70 2 80 8 100 5 C120 2 130 8 150 5 C170 2 180 8 200 5" />
   </svg>
 );
+
+export const CircledNum = ({ n, size = 36, color = 'var(--accent)' }) => (
+  <span style={{
+    display: 'inline-grid', placeItems: 'center',
+    width: size, height: size, position: 'relative',
+    fontFamily: 'var(--hand-display)', fontWeight: 700, fontSize: size * 0.55,
+    color,
+  }}>
+    <svg width={size} height={size} viewBox="0 0 40 40" style={{ position: 'absolute', inset: 0 }}
+      fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round">
+      <path d="M20 4 C 31 4, 36 12, 36 20 C 36 30, 28 36, 20 36 C 10 36, 4 28, 4 20 C 4 11, 11 4, 20 4 Z" />
+    </svg>
+    <span style={{ position: 'relative' }}>{n}</span>
+  </span>
+);
