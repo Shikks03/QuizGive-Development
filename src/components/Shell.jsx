@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { QGIcon } from '../icons.jsx';
 import { QGHelpers } from '../store.js';
 
-const { Plus, Star, StarFill, Search, Settings, Menu, X, Sun, Moon, Sparkles, Book, FileText, Award, Edit } = QGIcon;
+const { Plus, Star, StarFill, Search, Settings, Menu, X, Sparkles, Book, FileText, Award, Edit } = QGIcon;
 
 export function QGLogo({ size = 30 }) {
   return (
@@ -92,55 +92,97 @@ export function QGSidebar({ state, actions, auth, route, navigate, onClose }) {
         )}
       </div>
 
-      <SideFooter state={state} actions={actions} auth={auth} navigate={navigate} />
+      <SideFooter state={state} actions={actions} auth={auth} />
     </aside>
   );
 }
 
-function SideFooter({ state, actions, auth, navigate }) {
-  const [accountOpen, setAccountOpen] = useState(false);
-  const isDark = state.theme === 'dark';
+function SideFooter({ state, actions, auth }) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const username = auth?.username || state.user.name;
   const initials = (username || 'YO').slice(0, 2).toUpperCase();
   return (
     <>
       <div className="qg-side-footer">
         <div className="qg-row" style={{ gap: 8, flex: 1, minWidth: 0, cursor: 'pointer' }}
-          onClick={() => setAccountOpen(true)}>
+          onClick={() => setSettingsOpen(true)}>
           <div className="qg-avatar">{initials}</div>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{username}</div>
             <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>@{username}</div>
           </div>
         </div>
-        <button className="qg-iconbtn" title={isDark ? 'Light mode' : 'Dark mode'}
-          onClick={() => actions.setTheme(isDark ? 'light' : 'dark')}>
-          {isDark ? <Sun size={16} /> : <Moon size={16} />}
-        </button>
       </div>
-      {accountOpen && (
-        <AccountModal state={state} actions={actions} auth={auth} onClose={() => setAccountOpen(false)} />
+      {settingsOpen && (
+        <SettingsModal state={state} actions={actions} auth={auth} onClose={() => setSettingsOpen(false)} />
       )}
     </>
   );
 }
 
-function AccountModal({ state, actions, auth, onClose }) {
+const SCHEMES = [
+  { id: 'sketch-light',  label: 'Sketch',       bg: '#faf9f5', accent: '#c96442' },
+  { id: 'sketch-dark',   label: 'Sketch Dark',  bg: '#1a1814', accent: '#e08363' },
+  { id: 'ocean',         label: 'Ocean',        bg: '#f0f6fc', accent: '#2a7aad' },
+  { id: 'ocean-dark',    label: 'Ocean Dark',   bg: '#0d1b2a', accent: '#4eb8e8' },
+  { id: 'forest',        label: 'Forest',       bg: '#f4f7f2', accent: '#4a7c59' },
+  { id: 'forest-dark',   label: 'Forest Dark',  bg: '#111a14', accent: '#5cb87a' },
+  { id: 'rose',          label: 'Rose',         bg: '#fdf4f5', accent: '#c44d6b' },
+  { id: 'midnight',      label: 'Midnight',     bg: '#0f0f1a', accent: '#8b6fc8' },
+];
+
+function SettingsModal({ state, actions, auth, onClose }) {
   const username = auth?.username || state.user.name;
   return (
     <div className="qg-modal-scrim" onClick={onClose}>
-      <div className="qg-modal" onClick={(e) => e.stopPropagation()}>
-        <h2 className="qg-h2" style={{ marginBottom: 4 }}>Account</h2>
-        <p className="qg-muted" style={{ fontSize: 13, marginTop: 0, marginBottom: 16 }}>
-          Your quizzes and progress are synced to the cloud.
-        </p>
-        <label className="qg-h3" style={{ display: 'block', marginBottom: 6 }}>Username</label>
+      <div className="qg-modal" onClick={(e) => e.stopPropagation()} style={{ width: 360, maxWidth: '90vw' }}>
+        <h2 className="qg-h2" style={{ marginBottom: 16 }}>Settings</h2>
+
+        <div className="qg-h4" style={{ marginBottom: 10 }}>Appearance</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 20 }}>
+          {SCHEMES.map((s) => {
+            const active = state.theme === s.id;
+            return (
+              <button
+                key={s.id}
+                onClick={() => actions.setTheme(s.id)}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                  padding: '8px 4px', borderRadius: 8, cursor: 'pointer', outline: 'none',
+                  border: active ? '2.5px solid var(--accent)' : '2px solid var(--border-soft)',
+                  background: active ? 'var(--accent-soft)' : 'var(--surface)',
+                  transition: 'border-color 0.15s, background 0.15s',
+                }}
+              >
+                <div style={{
+                  width: 34, height: 34, borderRadius: '50%',
+                  background: s.bg,
+                  border: '2px solid rgba(0,0,0,0.12)',
+                  position: 'relative', overflow: 'hidden', flexShrink: 0,
+                }}>
+                  <div style={{
+                    position: 'absolute', bottom: 3, right: 3,
+                    width: 13, height: 13, borderRadius: '50%',
+                    background: s.accent,
+                  }} />
+                </div>
+                <span style={{ fontSize: 10, color: 'var(--ink-2)', textAlign: 'center', lineHeight: 1.2 }}>
+                  {s.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="qg-h4" style={{ marginBottom: 6 }}>Account</div>
+        <label style={{ display: 'block', fontSize: 13, color: 'var(--ink-3)', marginBottom: 4 }}>Username</label>
         <input
           className="qg-input"
           value={username}
           readOnly
           style={{ color: 'var(--ink-3)', cursor: 'default', marginBottom: 18 }}
         />
+
         <div className="qg-row between">
           <button className="qg-btn ghost" onClick={onClose}>Close</button>
           <button
