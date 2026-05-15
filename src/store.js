@@ -4,6 +4,7 @@ import { supabase, signOutUser } from './lib/supabase.js';
 const QG_DEFAULTS = {
   user: { name: 'You', initials: 'YO' },
   theme: 'sketch-light',
+  font: 'sketch',
   quizzes: {},
   sessions: {},
   results: {},
@@ -87,6 +88,7 @@ export function useQGStore() {
       folderOrder: prefs.folderOrder || [],
       folderCardOrder: prefs.folderCardOrder || {},
       theme: prefs.theme === 'light' ? 'sketch-light' : prefs.theme === 'dark' ? 'sketch-dark' : prefs.theme || 'sketch-light',
+      font: prefs.font || 'sketch',
       recentQuizId: prefs.recentQuizId || null,
       ranOnboarding: prefs.ranOnboarding || false,
       user: { name: username || 'You', initials: (username || 'YO').slice(0, 2).toUpperCase() },
@@ -149,6 +151,7 @@ export function useQGStore() {
           folderOrder: next.folderOrder,
           folderCardOrder: next.folderCardOrder,
           theme: next.theme,
+          font: next.font,
           recentQuizId: next.recentQuizId,
           ranOnboarding: next.ranOnboarding,
         };
@@ -163,6 +166,9 @@ export function useQGStore() {
     setUser: (u) => update((s) => ({ ...s, user: { ...s.user, ...u } })),
     setTheme: (t) => {
       updatePrefs((s) => ({ ...s, theme: t }));
+    },
+    setFont: (f) => {
+      updatePrefs((s) => ({ ...s, font: f }));
     },
 
     saveQuiz: async (quiz) => {

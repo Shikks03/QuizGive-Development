@@ -20,8 +20,9 @@ function QGMain({ state, actions, auth }) {
   const [sample, setSample] = useState(null);
 
   useEffect(() => {
-    document.body.className = state.theme;
-  }, [state.theme]);
+    const fontClass = state.font && state.font !== 'sketch' ? ` font-${state.font}` : '';
+    document.body.className = state.theme + fontClass;
+  }, [state.theme, state.font]);
 
   useEffect(() => {
     const onResize = () => setNarrow(window.innerWidth < 760);

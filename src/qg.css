@@ -242,6 +242,20 @@ body.midnight {
   --shadow-marker-accent: 3px 3px 0 0 var(--accent);
 }
 
+/* ── Font packs (override sketch font vars) ─────────────────────── */
+body.font-quicksand {
+  --hand-display: 'Quicksand', ui-sans-serif, system-ui, sans-serif;
+  --hand-body: 'Quicksand', ui-sans-serif, system-ui, sans-serif;
+  --hand-mono: 'Quicksand', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--hand-display);
+}
+body.font-outfit {
+  --hand-display: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  --hand-body: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --hand-mono: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--hand-display);
+}
+
 * { box-sizing: border-box; }
 
 html, body {

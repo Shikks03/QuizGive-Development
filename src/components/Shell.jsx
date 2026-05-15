@@ -131,6 +131,12 @@ const SCHEMES = [
   { id: 'midnight',      label: 'Midnight',     bg: '#0f0f1a', accent: '#8b6fc8' },
 ];
 
+const FONTS = [
+  { id: 'sketch',    label: 'Sketch',    sample: 'Aa', family: "'Caveat', 'Patrick Hand', cursive" },
+  { id: 'quicksand', label: 'Quicksand', sample: 'Aa', family: "'Quicksand', sans-serif" },
+  { id: 'outfit',    label: 'Outfit',    sample: 'Aa', family: "'Outfit', sans-serif" },
+];
+
 function SettingsModal({ state, actions, auth, onClose }) {
   const username = auth?.username || state.user.name;
   return (
@@ -168,6 +174,33 @@ function SettingsModal({ state, actions, auth, onClose }) {
                 </div>
                 <span style={{ fontSize: 10, color: 'var(--ink-2)', textAlign: 'center', lineHeight: 1.2 }}>
                   {s.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="qg-h4" style={{ marginBottom: 10 }}>Font</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 }}>
+          {FONTS.map((f) => {
+            const active = (state.font || 'sketch') === f.id;
+            return (
+              <button
+                key={f.id}
+                onClick={() => actions.setFont(f.id)}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  padding: '10px 4px', borderRadius: 8, cursor: 'pointer', outline: 'none',
+                  border: active ? '2.5px solid var(--accent)' : '2px solid var(--border-soft)',
+                  background: active ? 'var(--accent-soft)' : 'var(--surface)',
+                  transition: 'border-color 0.15s, background 0.15s',
+                }}
+              >
+                <span style={{ fontFamily: f.family, fontSize: 22, fontWeight: 600, lineHeight: 1, color: 'var(--ink)' }}>
+                  {f.sample}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--ink-2)', textAlign: 'center', lineHeight: 1.2 }}>
+                  {f.label}
                 </span>
               </button>
             );
