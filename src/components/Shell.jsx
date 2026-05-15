@@ -7,11 +7,14 @@ const { Plus, Star, StarFill, Search, Settings, Menu, X, Sun, Moon, Sparkles, Bo
 export function QGLogo({ size = 30 }) {
   return (
     <span className="qg-logo" style={{ fontSize: size }}>
-      <svg width={size + 5} height={size + 5} viewBox="0 0 32 32">
-        <rect x="3" y="5" width="26" height="22" rx="4" fill="currentColor" />
-        <path d="M9 12 L15 12 M9 16 L15 16 M9 20 L13 20" stroke="var(--surface)" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-        <circle cx="22" cy="20" r="3.5" fill="none" stroke="var(--surface)" strokeWidth="1.8" />
-        <path d="M24 22 L26 24" stroke="var(--surface)" strokeWidth="1.8" strokeLinecap="round" />
+      <svg width={size + 5} height={size + 5} viewBox="0 0 40 40"
+        fill="none" stroke="var(--ink)" strokeWidth="2.5" strokeLinecap="round">
+        <path d="M6 8 C6 6 8 5 10 5 L30 5 C32 5 34 6 34 8 L34 32 C34 34 32 35 30 35 L10 35 C8 35 6 34 6 32 Z"
+          fill="var(--accent)" stroke="var(--ink)" strokeWidth="2.5" />
+        <path d="M12 14 L20 14 M12 19 L20 19 M12 24 L17 24"
+          stroke="var(--bg)" strokeWidth="1.8" />
+        <circle cx="28" cy="27" r="5.5" fill="var(--bg)" stroke="var(--ink)" strokeWidth="2.5" />
+        <path d="M32 31 L36 35" stroke="var(--ink)" strokeWidth="3" strokeLinecap="round" />
       </svg>
       QuizGive
     </span>
