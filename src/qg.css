@@ -402,7 +402,7 @@ a:hover { text-decoration: underline; }
   content: ''; position: absolute; top: 0; left: -2px; right: -2px; height: 6px;
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 6' preserveAspectRatio='none'><path d='M0 3 Q 10 0 20 3 T 40 3 T 60 3 T 80 3 T 100 3 T 120 3 T 140 3 T 160 3 T 180 3 T 200 3' fill='none' stroke='%2329261b' stroke-width='2' stroke-linecap='round'/></svg>") repeat-x;
 }
-body.dark .qg-side-footer::before {
+body.sketch-dark .qg-side-footer::before {
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 6' preserveAspectRatio='none'><path d='M0 3 Q 10 0 20 3 T 40 3 T 60 3 T 80 3 T 100 3 T 120 3 T 140 3 T 160 3 T 180 3 T 200 3' fill='none' stroke='%23f1eee4' stroke-width='2' stroke-linecap='round'/></svg>") repeat-x;
 }
 
@@ -819,7 +819,7 @@ body.dark .qg-side-footer::before {
   font-weight: 600;
 }
 .qg-tabbar button.on { background: var(--ink); color: var(--surface); }
-body.dark .qg-tabbar button.on { background: var(--accent); color: var(--surface); }
+body.sketch-dark .qg-tabbar button.on { background: var(--accent); color: var(--surface); }
 
 /* ── dot grid ──────────────────────────────────────────── */
 .qg-dotgrid { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -894,7 +894,7 @@ body.dark .qg-tabbar button.on { background: var(--accent); color: var(--surface
   border: 0;
   margin: 16px 0;
 }
-body.dark .qg-divider {
+body.sketch-dark .qg-divider {
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 6' preserveAspectRatio='none'><path d='M0 3 Q 10 0 20 3 T 40 3 T 60 3 T 80 3 T 100 3 T 120 3 T 140 3 T 160 3 T 180 3 T 200 3' fill='none' stroke='%235a5448' stroke-width='2' stroke-linecap='round'/></svg>") repeat-x;
 }
 
@@ -963,7 +963,7 @@ body.dark .qg-divider {
   position: relative;
   transform: rotate(-1.5deg);
 }
-body.dark .qg-sticky { background: #b89855; color: var(--ink); }
+body.sketch-dark .qg-sticky { background: #b89855; color: var(--ink); }
 
 /* misc */
 .qg-paper {
