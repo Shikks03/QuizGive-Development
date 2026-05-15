@@ -458,27 +458,6 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
                       {isFav ? <StarFill size={14} /> : <Star size={14} />}
                       {isFav ? 'Remove bookmark' : 'Bookmark'}
                     </button>
-                    <button
-                      className="qg-btn ghost"
-                      style={{ width: '100%', justifyContent: 'flex-start' }}
-                      onClick={(e) => { e.stopPropagation(); QGExport.downloadJSON(quiz); setMenuOpen(false); }}
-                    >
-                      <Download size={14} /> Download JSON
-                    </button>
-                    <button
-                      className="qg-btn ghost"
-                      style={{ width: '100%', justifyContent: 'flex-start' }}
-                      onClick={(e) => { e.stopPropagation(); QGExport.downloadHTML(quiz); setMenuOpen(false); }}
-                    >
-                      <Download size={14} /> Answer key (HTML)
-                    </button>
-                    <button
-                      className="qg-btn ghost"
-                      style={{ width: '100%', justifyContent: 'flex-start' }}
-                      onClick={(e) => { e.stopPropagation(); setMenuOpen(false); setDownloadOpen(true); }}
-                    >
-                      <Download size={14} /> Interactive quiz…
-                    </button>
                     {!folderId && folderList.length > 0 && (
                       <>
                         <button className="qg-btn ghost" style={{ width: '100%', justifyContent: 'flex-start' }}
@@ -546,7 +525,7 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
         </div>
 
         {/* ── Back face ── */}
-        <div className="qg-flip-card-back" onClick={(e) => e.stopPropagation()}>
+        <div className="qg-flip-card-back" onClick={(e) => { e.stopPropagation(); setActiveCardId(null); }}>
           <div className="qg-flip-back-title">
             {quiz.title.replace(/^\[.+?\]\s*/, '')}
             <span className="qg-muted" style={{ fontSize: 12, fontWeight: 400, fontFamily: 'var(--font-sans)' }}>
@@ -561,21 +540,23 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
             >
               <Play size={14} /> Start quiz
             </button>
-            <button
-              className="qg-btn"
-              style={{ width: '100%', justifyContent: 'center' }}
-              onClick={(e) => { e.stopPropagation(); setDownloadOpen(true); }}
-            >
-              <Download size={14} /> Download quiz
-            </button>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                className="qg-btn"
+                style={{ flex: 1, justifyContent: 'center' }}
+                onClick={(e) => { e.stopPropagation(); QGExport.downloadHTML(quiz); }}
+              >
+                <Download size={14} /> Answer key
+              </button>
+              <button
+                className="qg-btn"
+                style={{ flex: 1, justifyContent: 'center' }}
+                onClick={(e) => { e.stopPropagation(); setDownloadOpen(true); }}
+              >
+                <Download size={14} /> Interactive
+              </button>
+            </div>
           </div>
-          <button
-            className="qg-btn ghost sm"
-            style={{ alignSelf: 'flex-end' }}
-            onClick={(e) => { e.stopPropagation(); setActiveCardId(null); }}
-          >
-            ← back
-          </button>
         </div>
 
       </div>

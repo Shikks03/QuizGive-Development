@@ -3,15 +3,22 @@ import { useQGStore } from './store.js';
 import { QGSidebar, QGTopbar } from './components/Shell.jsx';
 import { QGLibraryScreen, QGUploadScreen, QGPreviewScreen, QGReadyScreen, QGFolderScreen } from './screens/Screens.jsx';
 import { QGQuizScreen, QGResultsScreen } from './screens/Quiz.jsx';
+import { QGAuthScreen } from './screens/Auth.jsx';
 
-export default function QGApp() {
-  const [state, actions] = useQGStore();
+function QGSplashScreen() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <div className="qg-muted" style={{ fontSize: 14 }}>Loading…</div>
+    </div>
+  );
+}
+
+function QGMain({ state, actions, auth }) {
   const [route, setRoute] = useState({ name: 'library' });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [narrow, setNarrow] = useState(() => window.innerWidth < 760);
   const [sample, setSample] = useState(null);
 
-  // apply dark mode to body
   useEffect(() => {
     document.body.classList.toggle('dark', state.theme === 'dark');
   }, [state.theme]);
@@ -22,7 +29,6 @@ export default function QGApp() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // fetch sample quiz on startup
   useEffect(() => {
     (async () => {
       try {
@@ -42,7 +48,6 @@ export default function QGApp() {
   }, []);
   navigate.onMenu = narrow ? () => setDrawerOpen(true) : null;
 
-  // ── render the active screen ────────────────────────────────────
   let screen;
   if (route.name === 'library') {
     screen = <QGLibraryScreen state={state} actions={actions} navigate={navigate} />;
@@ -63,7 +68,6 @@ export default function QGApp() {
   }
 
   const hasOwnTopbar = route.name === 'quiz' || route.name === 'results';
-
   const showSidebar = !narrow;
   const showDrawer = narrow && drawerOpen;
 
@@ -88,20 +92,26 @@ export default function QGApp() {
   return (
     <div className={`qg-app ${showSidebar ? '' : 'no-sidebar'}`}>
       {showSidebar && (
-        <QGSidebar state={state} actions={actions} route={route} navigate={navigate} />
+        <QGSidebar state={state} actions={actions} auth={auth} route={route} navigate={navigate} />
       )}
-
       {showDrawer && (
         <>
           <div className="qg-scrim" onClick={() => setDrawerOpen(false)} />
-          <QGSidebar state={state} actions={actions} route={route} navigate={navigate} onClose={() => setDrawerOpen(false)} />
+          <QGSidebar state={state} actions={actions} auth={auth} route={route} navigate={navigate} onClose={() => setDrawerOpen(false)} />
         </>
       )}
-
       <main className="qg-main">
         {topbar}
         {screen}
       </main>
     </div>
   );
+}
+
+export default function QGApp() {
+  const [state, actions, auth] = useQGStore();
+
+  if (auth.status === 'loading') return <QGSplashScreen />;
+  if (auth.status === 'unauthenticated') return <QGAuthScreen />;
+  return <QGMain state={state} actions={actions} auth={auth} />;
 }

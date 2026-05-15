@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-
-const QG_KEY = 'quizgive.v1';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { supabase, signOutUser } from './lib/supabase.js';
 
 const QG_DEFAULTS = {
   user: { name: 'You', initials: 'YO' },
@@ -18,21 +17,6 @@ const QG_DEFAULTS = {
   folderCardOrder: {},
 };
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem(QG_KEY);
-    if (!raw) return { ...QG_DEFAULTS };
-    const parsed = JSON.parse(raw);
-    return { ...QG_DEFAULTS, ...parsed };
-  } catch {
-    return { ...QG_DEFAULTS };
-  }
-}
-
-function saveState(s) {
-  try { localStorage.setItem(QG_KEY, JSON.stringify(s)); } catch {}
-}
-
 export function resolveOrder(order, availableIds) {
   const idSet = new Set(availableIds);
   const known = order.filter(id => idSet.has(id));
@@ -42,9 +26,13 @@ export function resolveOrder(order, availableIds) {
 }
 
 export function useQGStore() {
-  const [state, setState] = useState(() => loadState());
+  const [state, setState] = useState(() => ({ ...QG_DEFAULTS }));
+  const stateRef = useRef(state);
+  const [authState, setAuthState] = useState({ session: null, status: 'loading', username: null });
+  const prefsTimerRef = useRef(null);
+  const pendingPrefsRef = useRef(null);
 
-  useEffect(() => { saveState(state); }, [state]);
+  useEffect(() => { stateRef.current = state; }, [state]);
 
   const update = useCallback((updater) => {
     setState((prev) => {
@@ -53,98 +41,304 @@ export function useQGStore() {
     });
   }, []);
 
+  // ── load all user data from Supabase ─────────────────────────────
+  const loadUserData = useCallback(async (userId) => {
+    let profileRes, quizzesRes, foldersRes, sessionsRes, resultsRes, prefsRes;
+    try {
+      [profileRes, quizzesRes, foldersRes, sessionsRes, resultsRes, prefsRes] = await Promise.all([
+        supabase.from('profiles').select('username').eq('id', userId).single(),
+        supabase.from('quizzes').select('id, data').eq('user_id', userId),
+        supabase.from('folders').select('id, name, quiz_ids').eq('user_id', userId),
+        supabase.from('sessions').select('quiz_id, data').eq('user_id', userId),
+        supabase.from('results').select('quiz_id, data').eq('user_id', userId),
+        supabase.from('user_prefs').select('data').eq('user_id', userId).single(),
+      ]);
+    } catch (err) {
+      console.error('loadUserData network error:', err);
+      setState({ ...QG_DEFAULTS });
+      setAuthState(prev => ({ ...prev, username: null }));
+      return;
+    }
+
+    const username = profileRes.data?.username || null;
+
+    const quizzes = {};
+    for (const row of quizzesRes.data || []) quizzes[row.id] = row.data;
+
+    const folders = {};
+    for (const row of foldersRes.data || []) {
+      folders[row.id] = { id: row.id, name: row.name, quizIds: row.quiz_ids || [], createdAt: Date.now() };
+    }
+
+    const sessions = {};
+    for (const row of sessionsRes.data || []) sessions[row.quiz_id] = row.data;
+
+    const results = {};
+    for (const row of resultsRes.data || []) results[row.quiz_id] = row.data;
+
+    const prefs = prefsRes.data?.data || {};
+
+    setState({
+      ...QG_DEFAULTS,
+      quizzes, folders, sessions, results,
+      bookmarks: prefs.bookmarks || [],
+      questionBookmarks: prefs.questionBookmarks || {},
+      cardOrder: prefs.cardOrder || [],
+      folderOrder: prefs.folderOrder || [],
+      folderCardOrder: prefs.folderCardOrder || {},
+      theme: prefs.theme || 'light',
+      recentQuizId: prefs.recentQuizId || null,
+      ranOnboarding: prefs.ranOnboarding || false,
+      user: { name: username || 'You', initials: (username || 'YO').slice(0, 2).toUpperCase() },
+    });
+
+    setAuthState(prev => ({ ...prev, username }));
+  }, []);
+
+  // ── auth state subscription ───────────────────────────────────────
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setAuthState({ session, status: 'authenticated', username: null });
+        loadUserData(session.user.id);
+      } else {
+        setAuthState({ session: null, status: 'unauthenticated', username: null });
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        setAuthState(prev => ({ ...prev, session, status: 'authenticated' }));
+        // only reload data on explicit sign-in, not on token refresh
+        if (event === 'SIGNED_IN') loadUserData(session.user.id);
+      } else {
+        setAuthState({ session: null, status: 'unauthenticated', username: null });
+        setState({ ...QG_DEFAULTS });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [loadUserData]);
+
+  // ── debounced prefs upsert ────────────────────────────────────────
+  const flushPrefs = useCallback(async (prefs, userId) => {
+    await supabase.from('user_prefs').upsert({ user_id: userId, data: prefs });
+  }, []);
+
+  const schedulePrefsFlush = useCallback((prefs, userId) => {
+    pendingPrefsRef.current = { prefs, userId };
+    if (prefsTimerRef.current) clearTimeout(prefsTimerRef.current);
+    prefsTimerRef.current = setTimeout(async () => {
+      if (pendingPrefsRef.current) {
+        const { prefs, userId } = pendingPrefsRef.current;
+        pendingPrefsRef.current = null;
+        await flushPrefs(prefs, userId);
+      }
+    }, 500);
+  }, [flushPrefs]);
+
+  const updatePrefs = useCallback((updater) => {
+    setState((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) return;
+        const prefs = {
+          bookmarks: next.bookmarks,
+          questionBookmarks: next.questionBookmarks,
+          cardOrder: next.cardOrder,
+          folderOrder: next.folderOrder,
+          folderCardOrder: next.folderCardOrder,
+          theme: next.theme,
+          recentQuizId: next.recentQuizId,
+          ranOnboarding: next.ranOnboarding,
+        };
+        schedulePrefsFlush(prefs, session.user.id);
+      });
+      return next;
+    });
+  }, [schedulePrefsFlush]);
+
+  // ── actions ───────────────────────────────────────────────────────
   const actions = useMemo(() => ({
     setUser: (u) => update((s) => ({ ...s, user: { ...s.user, ...u } })),
-    setTheme: (t) => update((s) => ({ ...s, theme: t })),
+    setTheme: (t) => {
+      updatePrefs((s) => ({ ...s, theme: t }));
+    },
 
-    saveQuiz: (quiz) => update((s) => ({
-      ...s,
-      quizzes: { ...s.quizzes, [quiz.id]: quiz },
-      recentQuizId: quiz.id,
-    })),
-    renameQuiz: (id, title) => update((s) => ({
-      ...s, quizzes: { ...s.quizzes, [id]: { ...s.quizzes[id], title } },
-    })),
-    deleteQuiz: (id) => update((s) => {
-      const { [id]: _gone, ...quizzes } = s.quizzes;
-      const { [id]: _g2, ...sessions } = s.sessions;
-      const { [id]: _g3, ...results } = s.results;
-      const { [id]: _g4, ...qbm } = s.questionBookmarks;
-      return {
-        ...s, quizzes, sessions, results,
-        bookmarks: s.bookmarks.filter(b => b !== id),
-        questionBookmarks: qbm,
-        recentQuizId: s.recentQuizId === id ? null : s.recentQuizId,
-      };
-    }),
-    renameQuiz: (id, title) => update((s) => ({
-      ...s,
-      quizzes: { ...s.quizzes, [id]: { ...s.quizzes[id], title } },
-    })),
+    saveQuiz: async (quiz) => {
+      update((s) => ({
+        ...s,
+        quizzes: { ...s.quizzes, [quiz.id]: quiz },
+        recentQuizId: quiz.id,
+      }));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { error } = await supabase.from('quizzes').upsert(
+        { id: quiz.id, user_id: session.user.id, title: quiz.title, data: quiz },
+        { onConflict: 'id' }
+      );
+      if (error) console.error('saveQuiz:', error);
+    },
 
-    saveSession: (quizId, session) => update((s) => ({
-      ...s,
-      sessions: { ...s.sessions, [quizId]: session },
-    })),
-    clearSession: (quizId) => update((s) => {
-      const { [quizId]: _g, ...sessions } = s.sessions;
-      return { ...s, sessions };
-    }),
+    renameQuiz: async (id, title) => {
+      update((s) => ({ ...s, quizzes: { ...s.quizzes, [id]: { ...s.quizzes[id], title } } }));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { error } = await supabase.from('quizzes')
+        .update({ title })
+        .eq('id', id).eq('user_id', session.user.id);
+      if (error) console.error('renameQuiz:', error);
+    },
 
-    saveResult: (quizId, summary) => update((s) => ({
-      ...s,
-      results: { ...s.results, [quizId]: summary },
-    })),
-    clearResult: (quizId) => update((s) => {
-      const { [quizId]: _g, ...results } = s.results;
-      return { ...s, results };
-    }),
+    deleteQuiz: async (id) => {
+      update((s) => {
+        const { [id]: _gone, ...quizzes } = s.quizzes;
+        const { [id]: _g2, ...sessions } = s.sessions;
+        const { [id]: _g3, ...results } = s.results;
+        const { [id]: _g4, ...qbm } = s.questionBookmarks;
+        return {
+          ...s, quizzes, sessions, results,
+          bookmarks: s.bookmarks.filter(b => b !== id),
+          questionBookmarks: qbm,
+          recentQuizId: s.recentQuizId === id ? null : s.recentQuizId,
+        };
+      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await supabase.from('quizzes').delete().eq('id', id).eq('user_id', session.user.id);
+      await supabase.from('sessions').delete().eq('quiz_id', id).eq('user_id', session.user.id);
+      await supabase.from('results').delete().eq('quiz_id', id).eq('user_id', session.user.id);
+    },
 
-    toggleBookmark: (quizId) => update((s) => ({
+    saveSession: async (quizId, session) => {
+      update((s) => ({ ...s, sessions: { ...s.sessions, [quizId]: session } }));
+      const { data: { session: authSession } } = await supabase.auth.getSession();
+      if (!authSession) return;
+      const { error } = await supabase.from('sessions').upsert(
+        { user_id: authSession.user.id, quiz_id: quizId, data: session }
+      );
+      if (error) console.error('saveSession:', error);
+    },
+
+    clearSession: async (quizId) => {
+      update((s) => {
+        const { [quizId]: _g, ...sessions } = s.sessions;
+        return { ...s, sessions };
+      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await supabase.from('sessions').delete().eq('quiz_id', quizId).eq('user_id', session.user.id);
+    },
+
+    saveResult: async (quizId, summary) => {
+      update((s) => ({ ...s, results: { ...s.results, [quizId]: summary } }));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { error } = await supabase.from('results').upsert(
+        { user_id: session.user.id, quiz_id: quizId, data: summary }
+      );
+      if (error) console.error('saveResult:', error);
+    },
+
+    clearResult: async (quizId) => {
+      update((s) => {
+        const { [quizId]: _g, ...results } = s.results;
+        return { ...s, results };
+      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await supabase.from('results').delete().eq('quiz_id', quizId).eq('user_id', session.user.id);
+    },
+
+    toggleBookmark: (quizId) => updatePrefs((s) => ({
       ...s,
       bookmarks: s.bookmarks.includes(quizId)
         ? s.bookmarks.filter(x => x !== quizId)
         : [quizId, ...s.bookmarks],
     })),
 
-    toggleQuestionBookmark: (quizId, qIdx) => update((s) => {
+    toggleQuestionBookmark: (quizId, qIdx) => updatePrefs((s) => {
       const cur = s.questionBookmarks[quizId] || [];
       const next = cur.includes(qIdx) ? cur.filter(x => x !== qIdx) : [...cur, qIdx];
       return { ...s, questionBookmarks: { ...s.questionBookmarks, [quizId]: next } };
     }),
 
-    setRecent: (quizId) => update((s) => ({ ...s, recentQuizId: quizId })),
-    markOnboarded: () => update((s) => ({ ...s, ranOnboarding: true })),
+    setRecent: (quizId) => updatePrefs((s) => ({ ...s, recentQuizId: quizId })),
+    markOnboarded: () => updatePrefs((s) => ({ ...s, ranOnboarding: true })),
 
-    createFolder: (name) => update((s) => {
+    createFolder: async (name) => {
       const id = 'f_' + Date.now().toString(36);
-      return { ...s, folders: { ...s.folders, [id]: { id, name, quizIds: [], createdAt: Date.now() } } };
-    }),
-    deleteFolder: (id) => update((s) => {
-      const { [id]: _gone, ...folders } = s.folders;
-      return { ...s, folders };
-    }),
-    renameFolder: (id, name) => update((s) => ({
-      ...s, folders: { ...s.folders, [id]: { ...s.folders[id], name } },
-    })),
-    addQuizToFolder: (folderId, quizId) => update((s) => {
-      const folder = s.folders[folderId];
-      if (!folder || folder.quizIds.includes(quizId)) return s;
-      return { ...s, folders: { ...s.folders, [folderId]: { ...folder, quizIds: [...folder.quizIds, quizId] } } };
-    }),
-    removeQuizFromFolder: (folderId, quizId) => update((s) => {
-      const folder = s.folders[folderId];
-      if (!folder) return s;
-      return { ...s, folders: { ...s.folders, [folderId]: { ...folder, quizIds: folder.quizIds.filter(id => id !== quizId) } } };
-    }),
-    setCardOrder: (ids) => update(s => ({ ...s, cardOrder: ids })),
-    setFolderOrder: (ids) => update(s => ({ ...s, folderOrder: ids })),
-    setFolderCardOrder: (folderId, ids) => update(s => ({
+      const folder = { id, name, quizIds: [], createdAt: Date.now() };
+      update((s) => ({ ...s, folders: { ...s.folders, [id]: folder } }));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { error } = await supabase.from('folders').upsert(
+        { id, user_id: session.user.id, name, quiz_ids: [] }
+      );
+      if (error) console.error('createFolder:', error);
+    },
+
+    deleteFolder: async (id) => {
+      update((s) => {
+        const { [id]: _gone, ...folders } = s.folders;
+        return { ...s, folders };
+      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await supabase.from('folders').delete().eq('id', id).eq('user_id', session.user.id);
+    },
+
+    renameFolder: async (id, name) => {
+      update((s) => ({ ...s, folders: { ...s.folders, [id]: { ...s.folders[id], name } } }));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { error } = await supabase.from('folders')
+        .update({ name })
+        .eq('id', id).eq('user_id', session.user.id);
+      if (error) console.error('renameFolder:', error);
+    },
+
+    addQuizToFolder: async (folderId, quizId) => {
+      const folder = stateRef.current.folders[folderId];
+      if (!folder || folder.quizIds.includes(quizId)) return;
+      const newQuizIds = [...folder.quizIds, quizId];
+      update((s) => ({ ...s, folders: { ...s.folders, [folderId]: { ...s.folders[folderId], quizIds: newQuizIds } } }));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { error } = await supabase.from('folders')
+        .update({ quiz_ids: newQuizIds })
+        .eq('id', folderId).eq('user_id', session.user.id);
+      if (error) console.error('addQuizToFolder:', error);
+    },
+
+    removeQuizFromFolder: async (folderId, quizId) => {
+      const folder = stateRef.current.folders[folderId];
+      if (!folder) return;
+      const newQuizIds = folder.quizIds.filter(id => id !== quizId);
+      update((s) => ({ ...s, folders: { ...s.folders, [folderId]: { ...s.folders[folderId], quizIds: newQuizIds } } }));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { error } = await supabase.from('folders')
+        .update({ quiz_ids: newQuizIds })
+        .eq('id', folderId).eq('user_id', session.user.id);
+      if (error) console.error('removeQuizFromFolder:', error);
+    },
+
+    setCardOrder: (ids) => updatePrefs(s => ({ ...s, cardOrder: ids })),
+    setFolderOrder: (ids) => updatePrefs(s => ({ ...s, folderOrder: ids })),
+    setFolderCardOrder: (folderId, ids) => updatePrefs(s => ({
       ...s, folderCardOrder: { ...s.folderCardOrder, [folderId]: ids },
     })),
-  }), [update]);
+  }), [update, updatePrefs]);
 
-  return [state, actions];
+  const auth = useMemo(() => ({
+    session: authState.session,
+    status: authState.status,
+    username: authState.username,
+    signOut: signOutUser,
+  }), [authState]);
+
+  return [state, actions, auth];
 }
 
 export const QGHelpers = {
