@@ -3,7 +3,7 @@ import { supabase, signOutUser } from './lib/supabase.js';
 
 const QG_DEFAULTS = {
   user: { name: 'You', initials: 'YO' },
-  theme: 'light',
+  theme: 'sketch-light',
   quizzes: {},
   sessions: {},
   results: {},
@@ -86,7 +86,7 @@ export function useQGStore() {
       cardOrder: prefs.cardOrder || [],
       folderOrder: prefs.folderOrder || [],
       folderCardOrder: prefs.folderCardOrder || {},
-      theme: prefs.theme || 'light',
+      theme: prefs.theme === 'light' ? 'sketch-light' : prefs.theme === 'dark' ? 'sketch-dark' : prefs.theme || 'sketch-light',
       recentQuizId: prefs.recentQuizId || null,
       ranOnboarding: prefs.ranOnboarding || false,
       user: { name: username || 'You', initials: (username || 'YO').slice(0, 2).toUpperCase() },
