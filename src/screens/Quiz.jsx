@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { QGIcon } from '../icons.jsx';
+import { QGIcon, CircledNum } from '../icons.jsx';
 import { QGHelpers } from '../store.js';
 import { QGExport } from '../lib/export.js';
 import { QGTopbar } from '../components/Shell.jsx';
@@ -107,7 +107,10 @@ function OneAtATime({ state, actions, navigate, quiz, session }) {
             )}
           </div>
 
-          <h1 className="prompt"><RichText nodes={q.prompt} /></h1>
+          <div className="qg-row" style={{ gap: 14, alignItems: 'flex-start' }}>
+            <CircledNum n={idx + 1} size={44} color="var(--accent)" />
+            <h1 className="prompt" style={{ flex: 1 }}><RichText nodes={q.prompt} /></h1>
+          </div>
 
           <div className="qg-col" style={{ gap: 10 }}>
             {order.map((origChoiceIdx, displayIdx) => {
@@ -320,6 +323,23 @@ function AllOnOnePage({ state, actions, navigate, quiz, session }) {
   );
 }
 
+function HandDonut({ pct, right, total, size = 200 }) {
+  const r = 70, c = 2 * Math.PI * r;
+  return (
+    <svg className="qg-donut" width={size} height={size} viewBox="0 0 200 200">
+      <circle cx="100" cy="100" r={r} fill="none" stroke="var(--ink)" strokeWidth="2"
+        strokeDasharray="4 5" opacity="0.4" />
+      <circle cx="100" cy="100" r={r + 6} fill="none" stroke="var(--ink)" strokeWidth="2.5" />
+      <circle cx="100" cy="100" r={r - 6} fill="none" stroke="var(--ink)" strokeWidth="2.5" />
+      <circle cx="100" cy="100" r={r} fill="none" stroke="var(--accent)" strokeWidth="14"
+        strokeDasharray={`${c * pct} ${c}`} strokeLinecap="round"
+        transform="rotate(-90 100 100)" />
+      <text x="100" y="96" textAnchor="middle" fontSize="38" fill="var(--ink)" fontWeight="700">{right}/{total}</text>
+      <text x="100" y="125" textAnchor="middle" fontSize="18" fill="var(--ink-3)">{Math.round(pct * 100)}% right</text>
+    </svg>
+  );
+}
+
 // ── Results Screen ─────────────────────────────────────────────────
 export function QGResultsScreen({ state, actions, navigate, quizId }) {
   const quiz = state.quizzes[quizId];
@@ -405,21 +425,7 @@ export function QGResultsScreen({ state, actions, navigate, quizId }) {
         <div className="qg-content wide">
           <div className="qg-grid-2" style={{ gridTemplateColumns: '280px 1fr', gap: 18, alignItems: 'start' }}>
             <div className="qg-card qg-card-pad" style={{ textAlign: 'center' }}>
-              <svg className="qg-donut" width="180" height="180" viewBox="0 0 100 100" style={{ display: 'block', margin: '0 auto' }}>
-                <circle cx="50" cy="50" r="42" fill="none" stroke="var(--surface-2)" strokeWidth="9" />
-                <circle cx="50" cy="50" r="42" fill="none" stroke="var(--accent)" strokeWidth="9"
-                  strokeDasharray={`${42 * 2 * Math.PI}`}
-                  strokeDashoffset={`${42 * 2 * Math.PI * (1 - result.pct)}`}
-                  strokeLinecap="round"
-                  transform="rotate(-90 50 50)" />
-                <text x="50" y="48" textAnchor="middle" fontSize="20" fill="var(--ink)" fontWeight="600">{result.right}/{result.total}</text>
-                <text x="50" y="62" textAnchor="middle" fontSize="8" fill="var(--ink-3)">{pctRound}% correct</text>
-              </svg>
-              <div className="qg-row" style={{ justifyContent: 'center', gap: 18, marginTop: 8, flexWrap: 'wrap' }}>
-                <span style={{ whiteSpace: 'nowrap' }}><b style={{ color: 'var(--ok)' }}>{result.right}</b> <span className="qg-muted">right</span></span>
-                <span style={{ whiteSpace: 'nowrap' }}><b style={{ color: 'var(--bad)' }}>{result.wrong}</b> <span className="qg-muted">wrong</span></span>
-                {result.skipped > 0 && <span style={{ whiteSpace: 'nowrap' }}><b className="qg-muted">{result.skipped}</b> <span className="qg-muted">skipped</span></span>}
-              </div>
+              <HandDonut pct={result.pct} right={result.right} total={result.total} size={200} />
 
               <hr className="qg-divider" />
 
