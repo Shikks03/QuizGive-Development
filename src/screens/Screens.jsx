@@ -453,7 +453,14 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
                       style={{ width: '100%', justifyContent: 'flex-start' }}
                       onClick={(e) => { e.stopPropagation(); QGExport.downloadHTML(quiz); setMenuOpen(false); }}
                     >
-                      <Download size={14} /> Download HTML
+                      <Download size={14} /> Answer key (HTML)
+                    </button>
+                    <button
+                      className="qg-btn ghost"
+                      style={{ width: '100%', justifyContent: 'flex-start' }}
+                      onClick={(e) => { e.stopPropagation(); setMenuOpen(false); setDownloadOpen(true); }}
+                    >
+                      <Download size={14} /> Interactive quiz…
                     </button>
                     {!folderId && folderList.length > 0 && (
                       <>
@@ -535,7 +542,7 @@ function LibraryCard({ quiz, state, actions, navigate, activeCardId, setActiveCa
               style={{ width: '100%', justifyContent: 'center' }}
               onClick={(e) => { e.stopPropagation(); setDownloadOpen(true); }}
             >
-              <Download size={14} /> Download
+              <Download size={14} /> Download quiz
             </button>
           </div>
           <button
@@ -969,7 +976,7 @@ export function QGReadyScreen({ state, actions, navigate, quizId }) {
             <div className="qg-row qg-muted-2" style={{ fontSize: 13 }}>
               <Download size={14} />
               Also: <a onClick={(e) => { e.preventDefault(); QGExport.downloadJSON(quiz); }} href="#">download JSON</a>
-              · <a onClick={(e) => { e.preventDefault(); QGExport.downloadHTML(quiz); }} href="#">download HTML</a>
+              · <a onClick={(e) => { e.preventDefault(); QGExport.downloadHTML(quiz); }} href="#">answer key (HTML)</a>
             </div>
             <button className="qg-btn ghost sm" onClick={() => navigate({ name: 'preview', quizId })}>
               ← Back to configure
