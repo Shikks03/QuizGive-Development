@@ -22,7 +22,7 @@ export function QGLogo({ size = 30 }) {
 }
 
 // ── Sidebar ──────────────────────────────────────────────────────
-export function QGSidebar({ state, actions, route, navigate, onClose }) {
+export function QGSidebar({ state, actions, auth, route, navigate, onClose }) {
   const quizzes = Object.values(state.quizzes).sort((a, b) => {
     const aBm = state.bookmarks.includes(a.id) ? 1 : 0;
     const bBm = state.bookmarks.includes(b.id) ? 1 : 0;
@@ -92,23 +92,25 @@ export function QGSidebar({ state, actions, route, navigate, onClose }) {
         )}
       </div>
 
-      <SideFooter state={state} actions={actions} navigate={navigate} />
+      <SideFooter state={state} actions={actions} auth={auth} navigate={navigate} />
     </aside>
   );
 }
 
-function SideFooter({ state, actions, navigate }) {
+function SideFooter({ state, actions, auth, navigate }) {
   const [accountOpen, setAccountOpen] = useState(false);
   const isDark = state.theme === 'dark';
+  const username = auth?.username || state.user.name;
+  const initials = (username || 'YO').slice(0, 2).toUpperCase();
   return (
     <>
       <div className="qg-side-footer">
         <div className="qg-row" style={{ gap: 8, flex: 1, minWidth: 0, cursor: 'pointer' }}
           onClick={() => setAccountOpen(true)}>
-          <div className="qg-avatar">{state.user.initials}</div>
+          <div className="qg-avatar">{initials}</div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{state.user.name}</div>
-            <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>Local account</div>
+            <div style={{ fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{username}</div>
+            <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>@{username}</div>
           </div>
         </div>
         <button className="qg-iconbtn" title={isDark ? 'Light mode' : 'Dark mode'}
@@ -117,40 +119,39 @@ function SideFooter({ state, actions, navigate }) {
         </button>
       </div>
       {accountOpen && (
-        <AccountModal state={state} actions={actions} onClose={() => setAccountOpen(false)} />
+        <AccountModal state={state} actions={actions} auth={auth} onClose={() => setAccountOpen(false)} />
       )}
     </>
   );
 }
 
-function AccountModal({ state, actions, onClose }) {
-  const [name, setName] = useState(state.user.name);
-  const save = () => {
-    actions.setUser({ name: name.trim() || 'You', initials: QGHelpers.initialsOf(name) });
-    onClose();
-  };
+function AccountModal({ state, actions, auth, onClose }) {
+  const username = auth?.username || state.user.name;
   return (
     <div className="qg-modal-scrim" onClick={onClose}>
       <div className="qg-modal" onClick={(e) => e.stopPropagation()}>
         <h2 className="qg-h2" style={{ marginBottom: 4 }}>Account</h2>
         <p className="qg-muted" style={{ fontSize: 13, marginTop: 0, marginBottom: 16 }}>
-          Your name and quizzes are saved locally to this browser.
+          Your quizzes and progress are synced to the cloud.
         </p>
-        <label className="qg-h3" style={{ display: 'block', marginBottom: 6 }}>Display name</label>
-        <input className="qg-input" value={name} onChange={(e) => setName(e.target.value)}
-          autoFocus onKeyDown={(e) => e.key === 'Enter' && save()} />
-
-        <div className="qg-row between" style={{ marginTop: 18 }}>
-          <button className="qg-btn ghost" onClick={() => {
-            if (confirm('Delete all QuizGive data on this device? This cannot be undone.')) {
-              localStorage.removeItem('quizgive.v1');
-              location.reload();
-            }
-          }}>Reset all data</button>
-          <div className="qg-row">
-            <button className="qg-btn" onClick={onClose}>Cancel</button>
-            <button className="qg-btn primary" onClick={save}>Save</button>
-          </div>
+        <label className="qg-h3" style={{ display: 'block', marginBottom: 6 }}>Username</label>
+        <input
+          className="qg-input"
+          value={username}
+          readOnly
+          style={{ color: 'var(--ink-3)', cursor: 'default', marginBottom: 18 }}
+        />
+        <div className="qg-row between">
+          <button className="qg-btn ghost" onClick={onClose}>Close</button>
+          <button
+            className="qg-btn"
+            onClick={async () => {
+              onClose();
+              await auth?.signOut();
+            }}
+          >
+            Log out
+          </button>
         </div>
       </div>
     </div>
